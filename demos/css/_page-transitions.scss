@@ -1,0 +1,27 @@
+@keyframes container {
+	0% {
+		opacity: 0;
+		transform: translateY(5vmin);
+	}
+
+	100% {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+[data-view='main'] {
+	&[data-transition='in'] {
+		animation: container .5s $ease-out-quart;
+		animation-direction: normal;
+	}
+
+	&[data-transition='loading'] {
+		opacity: 0;
+	}
+
+	&[data-transition='out'] {
+		animation: container .35s $ease-out-quart;
+		animation-direction: reverse;
+	}
+}

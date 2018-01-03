@@ -1,0 +1,87 @@
+$lightbox-scale: .9;
+@keyframes lightbox {
+	0% {
+		opacity: 0;
+		transform: scale($lightbox-scale);
+	}
+
+	100% {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+.lightbox {
+	opacity: 0;
+	pointer-events: none;
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+
+	&[data-view-active='true'] {
+		opacity: 1;
+		pointer-events: auto;
+	}
+
+	&[data-transition='in'] {
+		animation: lightbox .5s $ease-out-quart;
+		animation-direction: normal;
+	}
+
+	&[data-transition='loading'] {
+		opacity: 0;
+	}
+
+	&[data-transition='out'] {
+		animation: lightbox .35s $ease-out-quart;
+		animation-direction: reverse;
+	}
+
+	& &-box {
+		position: fixed;
+		top: 5vh;
+		right: 5vw;
+		bottom: 5vh;
+		left: 5vw;
+		width: 90vw;
+		height: 90vh;
+		padding: 5vh 5vw;
+		overflow-y: auto;
+		background-color: white;
+		box-shadow: 0 10px 30px rgba(black, .2);
+	}
+
+	&-close {
+		display: none;
+	}
+
+	& &-close {
+		display: block;
+		position: absolute;
+		top: 7.5vh;
+		right: 7.5vw;
+		font-size: 0;
+		appearance: none;
+		background: none;
+		border: 0;
+
+		&:before {
+			content: '';
+			position: fixed;
+			left: 0;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			z-index: -1;
+			transform: scale(1/$lightbox-scale);
+			background-color: rgba(black, .15);
+		}
+
+		&:after {
+			content: '\00d7';
+			font-size: 2.5rem;
+		}
+	}
+}
