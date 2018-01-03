@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Transition.js - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <li class="nav-link nav-home-link"><a href="index.html">Home</a></li><li class="nav-heading">Classes</li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="Config.html">Config</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="Config.html#attribute">attribute</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="Config.html#overrideAttributes">overrideAttributes</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="Controller.html">Controller</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="Controller.html#init">init</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="Controller.html#initializeContext">initializeContext</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="Model.html">Model</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="Model.html#.create">create</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="Model.html#getRepresentation">getRepresentation</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="Model.html#includesView">includesView</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="Model.html#querySelector">querySelector</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="Transition.html">Transition</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="Transition.html#enter">enter</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="Transition.html#exit">exit</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="Transition.html#loading">loading</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="View.html">View</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="View.html#hasName">hasName</a></span></li>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">Transition.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import dispatchEvent from './utils/dispatchEvent'
+import config from './Config'
+
+const attr = key => config.attribute(key)
+const reflow = element => element.offsetHeight
+
+/**
+ * @class Transition
+ * @classdesc Basic Transition class. All transitions you create should have this class as (grand)parent. When extending Transition,
+ * as a rule of thumb it's good to call this the super functions before your own functionality. E.g.:
+ * Sometimes you may want to do some preperation work, in which it is just fine to do this before you call super.exit()
+ * @example &lt;caption>Extending Transition&lt;/caption>
+ * async exit() {
+ *   super.exit()
+ *   // Your code
+ * }
+ */
+class Transition {
+
+  /**
+   * @param {Element} view - The view element
+   */
+  constructor (view) {
+    this._view = view
+    this._name = view.getAttribute(attr('data-view'))
+  }
+
+  /**
+   * @description Exit transition for the given view.
+   * @returns {Promise.&lt;void>} - Resolves when the data-transition attribute is set to 'out'
+   */
+  async exit () {
+    this._view.removeAttribute(attr('data-transition'))
+    reflow(this._view)
+    this._view.setAttribute(attr('data-transition'), 'out')
+  }
+
+  /**
+   * @description Loading transition for the given view. This transition state will only occur if the requested document is still loading when exit() completes.
+   * @returns {Promise.&lt;void>} - Resolves when the data-transition attribute is set to 'loading'
+   */
+  async loading () {
+    this._view.removeAttribute(attr('data-transition'))
+    reflow(this._view)
+    this._view.setAttribute(attr('data-transition'), 'loading')
+  }
+
+  /**
+   * @description Exit transition for the given view.
+   * @param {String} node - The new views node
+   * @returns {Promise.&lt;void>} - Resolves when the data-transition attribute is set to 'out'
+   */
+  async enter (node) {
+    const eventOptions = {
+      bubbles: true,
+      cancelable: true,
+      detail: {
+        name: this._name
+      }
+    }
+
+    dispatchEvent(this._view, 'viewwillupdate', eventOptions)
+    this._view.innerHTML = node.innerHTML
+    dispatchEvent(this._view, 'viewupdated', eventOptions)
+
+    this._view.removeAttribute(attr('data-transition'))
+    reflow(this._view)
+    this._view.setAttribute(attr('data-transition'), 'in')
+  }
+
+}
+
+export default Transition</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Wed Jan 03 2018 13:11:13 GMT+0100 (CET) using the Minami theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>
