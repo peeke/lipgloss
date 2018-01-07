@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/statics/css/{{ stylesheet }}">
+</head>
+<body>
+<header>{% block header %}{% endblock %}</header>
+<nav data-view="navigation" data-persist-view>
+    {% block navigation %}{% endblock %}
+</nav>
+<main data-view="{{ mainView if mainView else 'main' }}" data-persist-view>
+    {% block main %}{% endblock %}
+</main>
+{% block lightbox %}{% endblock %}
+<script src="/statics/js/{{ javascript }}"></script>
+</body>
+</html>

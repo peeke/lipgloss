@@ -1,0 +1,19 @@
+{% extends 'layout/lightbox.njk' %}
+{% block header %}Persisting header from index{% endblock %}
+{% block navigation %}
+    <ul>
+        <li><a href="page-1.html" data-view-link>page 1</a></li>
+        <li><strong>page 2</strong></li>
+        <li><a href="page-3.html" data-view-link>page 3</a></li>
+    </ul>
+    <div>root &rsaquo; <strong>page 1</strong></div>
+{% endblock %}
+{% block main %}
+    <h1>Page 2</h1>
+    <p>Doloribus et exercitationem facere iusto necessitatibus officia quod sunt tenetur ut voluptas. Cumque error est
+        mollitia omnis quas repellendus sunt, ullam voluptates? Lorem ipsum dolor sit amet, consectetur adipisicing
+        elit.</p>
+{% endblock %}
+{% block lightbox %}
+    <div data-view="lightbox" class="lightbox"></div>
+{% endblock %}

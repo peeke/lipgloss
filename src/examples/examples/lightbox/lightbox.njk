@@ -1,0 +1,13 @@
+{% extends 'layout/lightbox.njk' %}
+{% set mainView = 'lightbox' %}
+{% block navigation %}{% endblock %}
+{% block main %}
+    <div class="lightbox-box">
+        <h1>Lightbox content</h1>
+        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Doloribus et exercitationem facere iusto necessitatibus
+            officia quod sunt tenetur ut voluptas. Cumque error est mollitia omnis quas repellendus sunt, ullam
+            voluptates?</p>
+    </div>
+    <a href="page-1.html" class="lightbox-fallback-close">&lsaquo; back</a>
+    <button class="lightbox-close" data-activate-view="main">Close</button>
+{% endblock %}
