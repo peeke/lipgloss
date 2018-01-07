@@ -1,4 +1,3 @@
-import dispatchEvent from './utils/dispatchEvent'
 import config from './Config'
 
 const attr = key => config.attribute(key)
@@ -22,15 +21,6 @@ class Transition {
    */
   constructor (view) {
     this._view = view
-    this._
-    name = view.getAttribute(attr('data-view'))
-    this._eventOptions = {
-      bubbles: true,
-      cancelable: true,
-      detail: {
-        name: this._name
-      }
-    }
   }
 
   /**
@@ -38,7 +28,6 @@ class Transition {
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
   async exit () {
-    dispatchEvent(this._view, 'viewwillexit', this._eventOptions)
     this._view.removeAttribute(attr('data-transition'))
     reflow(this._view)
     this._view.setAttribute(attr('data-transition'), 'out')
@@ -60,10 +49,7 @@ class Transition {
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
   async enter (node) {
-    dispatchEvent(this._view, 'viewwillupdate', this._eventOptions)
     this._view.innerHTML = node.innerHTML
-    dispatchEvent(this._view, 'viewupdated', this._eventOptions)
-
     this._view.removeAttribute(attr('data-transition'))
     reflow(this._view)
     this._view.setAttribute(attr('data-transition'), 'in')

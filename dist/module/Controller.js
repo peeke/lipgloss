@@ -16,7 +16,7 @@ class Controller {
   /**
    * Controller is a singleton which should be initialized once trough the init() method to set the options
    * @param {object} options - Options
-   * @param {string[]} options.defaultHints - Which views are expected to be present, when a link is loaded without [data-view-hint]'s given
+   * @param {string[]} options.defaultHints - Which views are expected to be present, when a link is loaded with an empty [data-view-link]
    * @param {Object.<string, Transition>} options.transitions - An object containing the Transition's (value) for a given view (property)
    * @param {function(string)} options.sanitizeUrl - A function to transform the url, before it's compared and pushed to the history
    * @param {object} options.fetch - The options to pass into a fetch request
@@ -33,12 +33,10 @@ class Controller {
     this._options = Object.assign(Controller.options, options)
     this._viewsMap = new WeakMap()
 
-    if (this._options.overrideAttributes) {
-      config.overrideAttributes(this._options.overrideAttributes)
-    }
+    config.assign(this._options.attributes)
 
     const url = this._options.sanitizeUrl(window.location.href)
-    this._model = Model.create({url, hints: []}, this._options.fetch)
+    this._model = new Model({url, hints: []}, this._options.fetch)
 
     this._addHistoryEntry(this._model, true)
     this._bindEvents()
@@ -51,11 +49,12 @@ class Controller {
    * Default init options
    * @type {object}
    */
-  static get options() {
+  static get options () {
     return {
       defaultHints: [],
       transitions: {},
       sanitizeUrl: url => url,
+      attributes: {},
       fetch: {
         credentials: 'same-origin',
         cache: 'default',
@@ -84,7 +83,7 @@ class Controller {
   _bindEvents () {
     this._onLinkClick = this._onLinkClick.bind(this)
     this._onActivateViewClick = this._onActivateViewClick.bind(this)
-    document.addEventListener('viewupdated', e => this.initializeContext(e.target))
+    document.addEventListener('viewdidenter', e => this.initializeContext(e.target))
     window.addEventListener('popstate', e => this._onPopState(e))
   }
 
@@ -130,23 +129,14 @@ class Controller {
    * @param doc
    * @private
    */
-  _throwOnUnknownViewsWithoutParent (doc) {
+  _throwOnUnknownViews (doc) {
+    const message = name => `Not able to determine where [${attr('data-view')}='${name}'] should be inserted.`
 
-    const unknownViewElements = Array
+    Array
       .from(doc.querySelectorAll(`[${attr('data-view')}]`))
-      .filter(element => {
-        const name = element.getAttribute(attr('data-view'))
-        const hasParent = this.views.some(view => view.hasName(name))
-        return !hasParent
-      })
-
-    const unknownViewWithoutParent = unknownViewElements
-      .find(viewElement => !viewElement.parentNode.closest(`[${attr('data-view')}]`))
-
-    if (!unknownViewWithoutParent) return
-
-    const viewName = unknownViewWithoutParent.getAttribute(attr('data-view'))
-    throw new Error(`Not able to determine where [${attr('data-view')}='${viewName}'] should be inserted.`)
+      .map(viewElement => viewElement.getAttribute(attr('data-view')))
+      .filter(name => !this.views.some(view => view.name === name))
+      .forEach(name => { throw new Error(message(name)) });
 
   }
 
@@ -171,10 +161,9 @@ class Controller {
     e.preventDefault()
 
     const url = this._options.sanitizeUrl(e.currentTarget.href)
-    const hints = e.currentTarget.hasAttribute(attr('data-view-hint'))
-      ? e.currentTarget.getAttribute(attr('data-view-hint')).split(',')
-      : this._options.defaultHints
-    const model = Model.create({url, hints}, this._options.fetch)
+    const viewLink = e.currentTarget.getAttribute(attr('data-view-link'))
+    const hints = viewLink ? viewLink.split(',') : this._options.defaultHints
+    const model = new Model({url, hints}, this._options.fetch)
 
     if (this._isCurrentUrl(model.url)) return
     await this._updatePage(model)
@@ -219,9 +208,10 @@ class Controller {
    * @private
    */
   _onPopState (e) {
-    if (!e.state || !e.state.model) return
-    const model = Model.create(e.state.model, this._options.fetch)
-    this._updatePage(model)
+    try {
+      const model = new Model(e.state.model, this._options.fetch)
+      this._updatePage(model)
+    } catch (err) {}
   }
 
   /**
@@ -233,9 +223,10 @@ class Controller {
   async _updatePage (model) {
     this._model = model
     try {
-      this.views.forEach(view => view.model = model)
+      const viewUpdates = this.views.map(view => view.setModel(model))
+      await Promise.all(viewUpdates)
       const doc = await model.doc
-      this._throwOnUnknownViewsWithoutParent(doc)
+      this._throwOnUnknownViews(doc)
       document.title = doc.title
     } catch (err) {
       window.location.href = model.url
@@ -256,9 +247,8 @@ class Controller {
       model: model.getRepresentation()
     }
 
-    replaceEntry
-      ? window.history.replaceState(state, document.title, model.url)
-      : window.history.pushState(state, document.title, model.url)
+    const method = replaceEntry ? 'replaceState' : 'pushState'
+    history[method](state, document.title, model.url)
 
     dispatchEvent(window, 'statechange', {
       detail: state

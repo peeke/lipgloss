@@ -6,12 +6,14 @@ class Model {
 
   /**
    * Initialize a new Model
-   * @param {Request} request - A request object to fetch the new document
-   * @param {string[]} hints = [] - The views which are known to be contained in the loaded document
+   * @param {object} options - The configuration for the Model
+   * @param {string} options.url - The url to request
+   * @param {array} options.hints=string[] - The views expected to be present on the requested page
+   * @param {object} fetchOptions = The options used to fetch the url
    */
-  constructor (request, hints = []) {
-    this._request = request
-    this._hints = hints
+  constructor (options, fetchOptions) {
+    this._request =  new Request(options.url, fetchOptions)
+    this._hints = options.hints || []
     this._doc = null
   }
 
@@ -38,18 +40,6 @@ class Model {
   }
 
   /**
-   * Convenience method to create a Model given url, hints and optionally fetch options
-   * @param {string} url - The url to fetch
-   * @param {string[]} hints=[] - The views which are known to be contained in the loaded document
-   * @param {object} fetchOptions - The options to pass to fetch
-   * @returns {Model}
-   */
-  static create ({url, hints}, fetchOptions = {}) {
-    const request = new Request(url, fetchOptions)
-    return new Model(request, hints || [])
-  }
-
-  /**
    * A check to see if name was included the given hints
    * @param {string} name - A name of a view
    * @returns {boolean}
@@ -71,10 +61,10 @@ class Model {
 
   /**
    * Get an object representation of the Model, which can be added to the history state. You can pass it to the
-   * Model.create function to recreate the model:
+   * options parameter in the constructor to recreate the model:
    * @example <caption>Using the model representation</caption>
    * const representation = model.getRepresentation()
-   * const twin = Model.create(representation, fetchOptions)
+   * const twin = new Model(representation, fetchOptions)
    * @returns {{url: string, hints: string[]}}
    */
   getRepresentation () {
