@@ -1,5 +1,6 @@
 import Transition from './Transition'
 import config from './Config'
+import dispatchEvent from './utils/dispatchEvent'
 
 const unique = arr => Array.from(new Set(arr))
 const attr = key => config.attribute(key)
@@ -48,6 +49,16 @@ class View {
       transition: Transition,
       selector: null,
       model: null
+    }
+  }
+
+  get eventOptions(){
+    return {
+      bubbles: true,
+      cancelable: true,
+      detail: {
+        name: this._name
+      }
     }
   }
 
@@ -151,13 +162,21 @@ class View {
     this.loading = true
     model.doc.then(() => { this.loading = false })
 
-    this.active && await this._transition.exit()
+    if (this.active) {
+      dispatchEvent(this._element, 'viewwillexit', this.eventOptions)
+      await this._transition.exit()
+      dispatchEvent(this._element, 'viewdidexit', this.eventOptions)
+    }
+
     this.loading && this._transition.loading()
 
     const node = await model.querySelector(this.selector)
     this._activeModel = model
 
+    dispatchEvent(this._element, 'viewwillenter', this.eventOptions)
     await this._transition.enter(node)
+    dispatchEvent(this._element, 'viewdidenter', this.eventOptions)
+
     this.active = true
 
   }
@@ -172,7 +191,9 @@ class View {
 
     if (!this._persist) {
       this._activeModel = null
-      await this._transition.exit(this._element)
+      dispatchEvent(this._element, 'viewwillexit', this.eventOptions)
+      await this._transition.exit()
+      dispatchEvent(this._element, 'viewdidexit', this.eventOptions)
     }
 
     this.active = false

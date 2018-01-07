@@ -727,12 +727,6 @@
   (function() { return this })() || Function("return this")()
 );
 
-var dispatchEvent = function dispatchEvent(source, event) {
-  var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : { bubbles: true, cancelable: true };
-
-  source.dispatchEvent(new CustomEvent(event, options));
-};
-
 var asyncToGenerator = function (fn) {
   return function () {
     var gen = fn.apply(this, arguments);
@@ -930,15 +924,6 @@ var Transition = function () {
     classCallCheck(this, Transition);
 
     this._view = view;
-    this._;
-    name = view.getAttribute(attr$2('data-view'));
-    this._eventOptions = {
-      bubbles: true,
-      cancelable: true,
-      detail: {
-        name: this._name
-      }
-    };
   }
 
   /**
@@ -955,12 +940,11 @@ var Transition = function () {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                dispatchEvent(this._view, 'viewwillexit', this._eventOptions);
                 this._view.removeAttribute(attr$2('data-transition'));
                 reflow(this._view);
                 this._view.setAttribute(attr$2('data-transition'), 'out');
 
-              case 4:
+              case 3:
               case 'end':
                 return _context.stop();
             }
@@ -1021,15 +1005,12 @@ var Transition = function () {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                dispatchEvent(this._view, 'viewwillupdate', this._eventOptions);
                 this._view.innerHTML = node.innerHTML;
-                dispatchEvent(this._view, 'viewupdated', this._eventOptions);
-
                 this._view.removeAttribute(attr$2('data-transition'));
                 reflow(this._view);
                 this._view.setAttribute(attr$2('data-transition'), 'in');
 
-              case 6:
+              case 4:
               case 'end':
                 return _context3.stop();
             }
@@ -1046,6 +1027,12 @@ var Transition = function () {
   }]);
   return Transition;
 }();
+
+var dispatchEvent = function dispatchEvent(source, event) {
+  var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : { bubbles: true, cancelable: true };
+
+  source.dispatchEvent(new CustomEvent(event, options));
+};
 
 var unique = function unique(arr) {
   return Array.from(new Set(arr));
@@ -1142,34 +1129,40 @@ var View = function () {
                   _this.loading = false;
                 });
 
-                _context.t0 = this.active;
-
-                if (!_context.t0) {
-                  _context.next = 9;
+                if (!this.active) {
+                  _context.next = 10;
                   break;
                 }
 
+                dispatchEvent(this._element, 'viewwillexit', this.eventOptions);
                 _context.next = 9;
                 return this._transition.exit();
 
               case 9:
+                dispatchEvent(this._element, 'viewdidexit', this.eventOptions);
+
+              case 10:
+
                 this.loading && this._transition.loading();
 
-                _context.next = 12;
+                _context.next = 13;
                 return model.querySelector(this.selector);
 
-              case 12:
+              case 13:
                 node = _context.sent;
 
                 this._activeModel = model;
 
-                _context.next = 16;
+                dispatchEvent(this._element, 'viewwillenter', this.eventOptions);
+                _context.next = 18;
                 return this._transition.enter(node);
 
-              case 16:
+              case 18:
+                dispatchEvent(this._element, 'viewdidenter', this.eventOptions);
+
                 this.active = true;
 
-              case 17:
+              case 20:
               case 'end':
                 return _context.stop();
             }
@@ -1206,19 +1199,23 @@ var View = function () {
 
               case 2:
                 if (this._persist) {
-                  _context2.next = 6;
+                  _context2.next = 8;
                   break;
                 }
 
                 this._activeModel = null;
-                _context2.next = 6;
-                return this._transition.exit(this._element);
+                dispatchEvent(this._element, 'viewwillexit', this.eventOptions);
+                _context2.next = 7;
+                return this._transition.exit();
 
-              case 6:
+              case 7:
+                dispatchEvent(this._element, 'viewdidexit', this.eventOptions);
+
+              case 8:
 
                 this.active = false;
 
-              case 7:
+              case 9:
               case 'end':
                 return _context2.stop();
             }
@@ -1233,13 +1230,24 @@ var View = function () {
       return _deactivate;
     }()
   }, {
-    key: 'selector',
-
+    key: 'eventOptions',
+    get: function get$$1() {
+      return {
+        bubbles: true,
+        cancelable: true,
+        detail: {
+          name: this._name
+        }
+      };
+    }
 
     /**
      * The selector to use to obtain a new node for this View from the loaded document
      * @returns {string}
      */
+
+  }, {
+    key: 'selector',
     get: function get$$1() {
       return this._options.selector || '[' + attr$1('data-view') + '="' + this._options.name + '"]';
     }
@@ -1529,7 +1537,7 @@ var Controller = function () {
 
       this._onLinkClick = this._onLinkClick.bind(this);
       this._onActivateViewClick = this._onActivateViewClick.bind(this);
-      document.addEventListener('viewupdated', function (e) {
+      document.addEventListener('viewdidenter', function (e) {
         return _this.initializeContext(e.target);
       });
       window.addEventListener('popstate', function (e) {

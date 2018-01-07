@@ -1,16 +1,22 @@
 {% extends 'layout/animated-transition.njk' %}
-{% block header %}Persisting header from index{% endblock %}
-{% block navigation %}
-    <ul>
-        <li><strong>page 1</strong></li>
-        <li><a href="page-2.html" data-view-link>page 2</a></li>
-        <li><a href="page-3.html" data-view-link>page 3</a></li>
-    </ul>
-    <div>root &rsaquo; <strong>page 1</strong></div>
-{% endblock %}
-{% block main %}
-    <h1>Page 1</h1>
-    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Doloribus et exercitationem facere iusto necessitatibus
-        officia quod sunt tenetur ut voluptas. Cumque error est mollitia omnis quas repellendus sunt, ullam
-        voluptates?</p>
+{% block body %}
+
+    <header>Persisting header from page 1</header>
+
+    <nav data-view="navigation" data-persist-view>
+        <ul>
+            <li><strong>page 1</strong></li>
+            <li><a href="page-2.html" data-view-link>page 2</a></li>
+            <li><a href="page-3.html" data-view-link>page 3</a></li>
+        </ul>
+        <div>root &rsaquo; <strong>page 1</strong></div>
+    </nav>
+
+    <main data-view="main" data-persist-view>
+        <h1>Page 1</h1>
+        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Doloribus et exercitationem facere iusto necessitatibus
+            officia quod sunt tenetur ut voluptas. Cumque error est mollitia omnis quas repellendus sunt, ullam
+            voluptates?</p>
+    </main>
+
 {% endblock %}

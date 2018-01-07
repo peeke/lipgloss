@@ -84,7 +84,7 @@ class Controller {
   _bindEvents () {
     this._onLinkClick = this._onLinkClick.bind(this)
     this._onActivateViewClick = this._onActivateViewClick.bind(this)
-    document.addEventListener('viewupdated', e => this.initializeContext(e.target))
+    document.addEventListener('viewdidenter', e => this.initializeContext(e.target))
     window.addEventListener('popstate', e => this._onPopState(e))
   }
 

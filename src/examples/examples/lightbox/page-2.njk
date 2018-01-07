@@ -1,19 +1,24 @@
 {% extends 'layout/lightbox.njk' %}
-{% block header %}Persisting header from index{% endblock %}
-{% block navigation %}
-    <ul>
-        <li><a href="page-1.html" data-view-link>page 1</a></li>
-        <li><strong>page 2</strong></li>
-        <li><a href="page-3.html" data-view-link>page 3</a></li>
-    </ul>
-    <div>root &rsaquo; <strong>page 1</strong></div>
-{% endblock %}
-{% block main %}
-    <h1>Page 2</h1>
-    <p>Doloribus et exercitationem facere iusto necessitatibus officia quod sunt tenetur ut voluptas. Cumque error est
-        mollitia omnis quas repellendus sunt, ullam voluptates? Lorem ipsum dolor sit amet, consectetur adipisicing
-        elit.</p>
-{% endblock %}
-{% block lightbox %}
+{% block body %}
+
+    <header>Persisting header from page 2</header>
+
+    <nav data-view="navigation" data-persist-view>
+        <ul>
+            <li><a href="page-1.html" data-view-link>page 1</a></li>
+            <li><strong>page 2</strong></li>
+            <li><a href="page-3.html" data-view-link>page 3</a></li>
+        </ul>
+        <div>root &rsaquo; <strong>page 2</strong></div>
+    </nav>
+
+    <main data-view="main" data-persist-view>
+        <h1>Page 2</h1>
+        <p>Doloribus et exercitationem facere iusto necessitatibus officia quod sunt tenetur ut voluptas. Cumque error est
+            mollitia omnis quas repellendus sunt, ullam voluptates? Lorem ipsum dolor sit amet, consectetur adipisicing
+            elit.</p>
+    </main>
+
     <div data-view="lightbox" class="lightbox"></div>
+
 {% endblock %}
