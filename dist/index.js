@@ -320,7 +320,7 @@ var View = function () {
     this._element = element;
     this._options = Object.assign(View.options, options);
 
-    this.active = !!this._element.innerHTML;
+    this.active = !!this._element.innerHTML.trim();
     this._persist = this._element.hasAttribute(attr$1('data-persist-view'));
     this._activeModel = this._options.model;
 
@@ -339,65 +339,6 @@ var View = function () {
 
 
   createClass(View, [{
-    key: 'setModel',
-    value: function () {
-      var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(model) {
-        var modelIncludesView, htmlContainsViews, active;
-        return regeneratorRuntime.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                modelIncludesView = model.includesView(this._options.name);
-                htmlContainsViews = Promise.resolve(modelIncludesView || model.querySelector(this.selector));
-                _context.next = 4;
-                return htmlContainsViews.then(function () {
-                  return true;
-                }, function () {
-                  return false;
-                });
-
-              case 4:
-                active = _context.sent;
-                _context.next = 7;
-                return active;
-
-              case 7:
-                if (!_context.sent) {
-                  _context.next = 11;
-                  break;
-                }
-
-                this._activate(model);
-
-                _context.next = 12;
-                break;
-
-              case 11:
-                this._deactivate();
-
-              case 12:
-                this.active = active;
-
-              case 13:
-              case 'end':
-                return _context.stop();
-            }
-          }
-        }, _callee, this);
-      }));
-
-      function setModel(_x2) {
-        return _ref.apply(this, arguments);
-      }
-
-      return setModel;
-    }()
-
-    /**
-     * @returns {string} - The name of this view
-     */
-
-  }, {
     key: '_activate',
 
 
@@ -408,62 +349,70 @@ var View = function () {
      * @private
      */
     value: function () {
-      var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(model) {
+      var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(model) {
         var _this = this;
 
-        return regeneratorRuntime.wrap(function _callee2$(_context2) {
+        var node, active;
+        return regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
-            switch (_context2.prev = _context2.next) {
+            switch (_context.prev = _context.next) {
               case 0:
-                if (!(this._activeModel && this._activeModel.url === model.url)) {
-                  _context2.next = 2;
-                  break;
-                }
-
-                return _context2.abrupt('return');
-
-              case 2:
 
                 this.loading = true;
                 model.doc.then(function () {
                   _this.loading = false;
                 });
 
-                _context2.t0 = this.active;
+                _context.t0 = this.active;
 
-                if (!_context2.t0) {
-                  _context2.next = 8;
+                if (!_context.t0) {
+                  _context.next = 6;
                   break;
                 }
 
-                _context2.next = 8;
+                _context.next = 6;
                 return this._exit();
 
-              case 8:
+              case 6:
                 this.loading && this._transition.loading();
 
-                _context2.t1 = this;
-                _context2.next = 12;
+                _context.next = 9;
                 return model.querySelector(this.selector);
 
-              case 12:
-                _context2.t2 = _context2.sent;
-                _context2.next = 15;
-                return _context2.t1._enter.call(_context2.t1, _context2.t2);
+              case 9:
+                node = _context.sent;
+                active = !!node.innerHTML.trim();
 
-              case 15:
+                if (!active) {
+                  _context.next = 17;
+                  break;
+                }
+
+                _context.next = 14;
+                return this._enter(node);
+
+              case 14:
                 this._activeModel = model;
+                _context.next = 18;
+                break;
 
-              case 16:
+              case 17:
+                this._activeModel = null;
+
+              case 18:
+
+                this.active = active;
+
+              case 19:
               case 'end':
-                return _context2.stop();
+                return _context.stop();
             }
           }
-        }, _callee2, this);
+        }, _callee, this);
       }));
 
-      function _activate(_x3) {
-        return _ref2.apply(this, arguments);
+      function _activate(_x2) {
+        return _ref.apply(this, arguments);
       }
 
       return _activate;
@@ -477,43 +426,44 @@ var View = function () {
   }, {
     key: '_deactivate',
     value: function () {
-      var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3() {
-        return regeneratorRuntime.wrap(function _callee3$(_context3) {
+      var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2() {
+        return regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
-            switch (_context3.prev = _context3.next) {
+            switch (_context2.prev = _context2.next) {
               case 0:
                 if (this.active) {
-                  _context3.next = 2;
+                  _context2.next = 2;
                   break;
                 }
 
-                return _context3.abrupt('return');
+                return _context2.abrupt('return');
 
               case 2:
                 if (!this._persist) {
-                  _context3.next = 4;
+                  _context2.next = 4;
                   break;
                 }
 
-                return _context3.abrupt('return');
+                return _context2.abrupt('return');
 
               case 4:
-                _context3.next = 6;
+                _context2.next = 6;
                 return this._exit();
 
               case 6:
+                this.active = false;
                 this._activeModel = null;
 
-              case 7:
+              case 8:
               case 'end':
-                return _context3.stop();
+                return _context2.stop();
             }
           }
-        }, _callee3, this);
+        }, _callee2, this);
       }));
 
       function _deactivate() {
-        return _ref3.apply(this, arguments);
+        return _ref2.apply(this, arguments);
       }
 
       return _deactivate;
@@ -529,13 +479,13 @@ var View = function () {
   }, {
     key: '_enter',
     value: function () {
-      var _ref4 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee4(node) {
-        return regeneratorRuntime.wrap(function _callee4$(_context4) {
+      var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(node) {
+        return regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
-            switch (_context4.prev = _context4.next) {
+            switch (_context3.prev = _context3.next) {
               case 0:
                 dispatchEvent(this._element, 'viewwillenter', this.eventOptions);
-                _context4.next = 3;
+                _context3.next = 3;
                 return this._transition.enter(node);
 
               case 3:
@@ -543,14 +493,14 @@ var View = function () {
 
               case 4:
               case 'end':
-                return _context4.stop();
+                return _context3.stop();
             }
           }
-        }, _callee4, this);
+        }, _callee3, this);
       }));
 
-      function _enter(_x4) {
-        return _ref4.apply(this, arguments);
+      function _enter(_x3) {
+        return _ref3.apply(this, arguments);
       }
 
       return _enter;
@@ -565,13 +515,13 @@ var View = function () {
   }, {
     key: '_exit',
     value: function () {
-      var _ref5 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee5() {
-        return regeneratorRuntime.wrap(function _callee5$(_context5) {
+      var _ref4 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee4() {
+        return regeneratorRuntime.wrap(function _callee4$(_context4) {
           while (1) {
-            switch (_context5.prev = _context5.next) {
+            switch (_context4.prev = _context4.next) {
               case 0:
                 dispatchEvent(this._element, 'viewwillexit', this.eventOptions);
-                _context5.next = 3;
+                _context4.next = 3;
                 return this._transition.exit();
 
               case 3:
@@ -579,14 +529,14 @@ var View = function () {
 
               case 4:
               case 'end':
-                return _context5.stop();
+                return _context4.stop();
             }
           }
-        }, _callee5, this);
+        }, _callee4, this);
       }));
 
       function _exit() {
-        return _ref5.apply(this, arguments);
+        return _ref4.apply(this, arguments);
       }
 
       return _exit;
@@ -679,8 +629,25 @@ var View = function () {
      */
     ,
     set: function set$$1(model) {
-      this._setModel(model);
+      var _this3 = this;
+
+      if (this._activeModel && this._activeModel.url === model.url) {
+        return;
+      }
+
+      var modelHasHint = model.includesView(this._options.name);
+      var docHasView = Promise.resolve(modelHasHint || model.querySelector(this.selector));
+      docHasView.then(function () {
+        return _this3._activate(model);
+      }, function () {
+        return _this3._deactivate();
+      });
     }
+
+    /**
+     * @returns {string} - The name of this view
+     */
+
   }, {
     key: 'name',
     get: function get$$1() {
@@ -755,7 +722,7 @@ var Model = function () {
       return this.doc.then(function (doc) {
         return doc.querySelector(selector);
       }).then(function (node) {
-        return node && node.innerHTML ? node : Promise.reject();
+        return node || Promise.reject();
       });
     }
 
@@ -846,7 +813,7 @@ var Controller = function () {
       config.assign(this._options.attributes);
 
       var url = this._options.sanitizeUrl(window.location.href);
-      this._model = new Model({ url: url, hints: [] }, this._options.fetch);
+      this._model = new Model({ url: url, hints: this._options.defaultHints }, this._options.fetch);
 
       this._addHistoryEntry(this._model, true);
       this._bindEvents();
@@ -1038,7 +1005,7 @@ var Controller = function () {
                 e.preventDefault();
 
                 name = e.currentTarget.getAttribute(attr('data-activate-view'));
-                model = this._getModelFromView(name);
+                model = this._getViewByName(name).model;
 
                 if (!this._isCurrentUrl(model.url)) {
                   _context2.next = 5;
@@ -1077,11 +1044,10 @@ var Controller = function () {
      */
 
   }, {
-    key: '_getModelFromView',
-    value: function _getModelFromView(name) {
+    key: '_getViewByName',
+    value: function _getViewByName(name) {
       var element = document.querySelector('[' + attr('data-view') + '="' + name + '"]');
-      var view = this._viewsMap.get(element);
-      return view.model;
+      return this._viewsMap.get(element);
     }
 
     /**
@@ -1110,43 +1076,41 @@ var Controller = function () {
     key: '_updatePage',
     value: function () {
       var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(model) {
-        var viewUpdates, doc;
+        var doc;
         return regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
                 this._model = model;
                 _context3.prev = 1;
-                viewUpdates = this.views.map(function (view) {
-                  return view.setModel(model);
+
+                this.views.forEach(function (view) {
+                  return view.model = model;
                 });
                 _context3.next = 5;
-                return Promise.all(viewUpdates);
-
-              case 5:
-                _context3.next = 7;
                 return model.doc;
 
-              case 7:
+              case 5:
                 doc = _context3.sent;
 
                 this._throwOnUnknownViews(doc);
                 document.title = doc.title;
-                _context3.next = 15;
+                _context3.next = 14;
                 break;
 
-              case 12:
-                _context3.prev = 12;
+              case 10:
+                _context3.prev = 10;
                 _context3.t0 = _context3['catch'](1);
 
+                console.error(_context3.t0);
                 window.location.href = model.url;
 
-              case 15:
+              case 14:
               case 'end':
                 return _context3.stop();
             }
           }
-        }, _callee3, this, [[1, 12]]);
+        }, _callee3, this, [[1, 10]]);
       }));
 
       function _updatePage(_x4) {
@@ -1226,6 +1190,7 @@ var index = new Controller();
 exports.View = View;
 exports.Model = Model;
 exports.Transition = Transition;
+exports.Config = config;
 exports['default'] = index;
 
 Object.defineProperty(exports, '__esModule', { value: true });

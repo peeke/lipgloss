@@ -25,7 +25,7 @@ class View {
     this._element = element
     this._options = Object.assign(View.options, options)
 
-    this.active = !!this._element.innerHTML
+    this.active = !!this._element.innerHTML.trim()
     this._persist = this._element.hasAttribute(attr('data-persist-view'))
     this._activeModel = this._options.model
 
@@ -42,7 +42,7 @@ class View {
    * Default options
    * @type {object}
    */
-  static get options() {
+  static get options () {
     return {
       name: null,
       persist: false,
@@ -52,7 +52,7 @@ class View {
     }
   }
 
-  get eventOptions(){
+  get eventOptions () {
     return {
       bubbles: true,
       cancelable: true,
@@ -125,17 +125,14 @@ class View {
    * @param {Model} model
    */
   set model (model) {
-    this._setModel(model)
-  }
 
-  async setModel(model) {
+    if (this._activeModel && this._activeModel.url === model.url) {
+      return
+    }
 
-    const modelIncludesView = model.includesView(this._options.name)
-    const htmlContainsViews = Promise.resolve(modelIncludesView || model.querySelector(this.selector))
-    const active = await htmlContainsViews.then(() => true, () => false)
-
-    await active ? this._activate(model) : this._deactivate()
-    this.active = active
+    const modelHasHint = model.includesView(this._options.name)
+    const docHasView = Promise.resolve(modelHasHint || model.querySelector(this.selector))
+    docHasView.then(() => this._activate(model), () => this._deactivate())
 
   }
 
@@ -154,18 +151,23 @@ class View {
    */
   async _activate (model) {
 
-    if (this._activeModel && this._activeModel.url === model.url) {
-      return
-    }
-
     this.loading = true
     model.doc.then(() => { this.loading = false })
 
     this.active && await this._exit()
     this.loading && this._transition.loading()
 
-    await this._enter(await model.querySelector(this.selector))
-    this._activeModel = model
+    const node = await model.querySelector(this.selector)
+    const active = !!node.innerHTML.trim()
+
+    if (active) {
+      await this._enter(node)
+      this._activeModel = model
+    } else {
+      this._activeModel = null
+    }
+
+    this.active = active
 
   }
 
@@ -179,6 +181,7 @@ class View {
     if (this._persist) return
 
     await this._exit()
+    this.active = false
     this._activeModel = null
 
   }
@@ -189,7 +192,7 @@ class View {
    * @returns {Promise.<void>}
    * @private
    */
-  async _enter(node) {
+  async _enter (node) {
     dispatchEvent(this._element, 'viewwillenter', this.eventOptions)
     await this._transition.enter(node)
     dispatchEvent(this._element, 'viewdidenter', this.eventOptions)
@@ -200,7 +203,7 @@ class View {
    * @returns {Promise.<void>}
    * @private
    */
-  async _exit() {
+  async _exit () {
     dispatchEvent(this._element, 'viewwillexit', this.eventOptions)
     await this._transition.exit()
     dispatchEvent(this._element, 'viewdidexit', this.eventOptions)

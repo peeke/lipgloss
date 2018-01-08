@@ -36,7 +36,7 @@ class Controller {
     config.assign(this._options.attributes)
 
     const url = this._options.sanitizeUrl(window.location.href)
-    this._model = new Model({url, hints: []}, this._options.fetch)
+    this._model = new Model({url, hints: this._options.defaultHints}, this._options.fetch)
 
     this._addHistoryEntry(this._model, true)
     this._bindEvents()
@@ -136,7 +136,7 @@ class Controller {
       .from(doc.querySelectorAll(`[${attr('data-view')}]`))
       .map(viewElement => viewElement.getAttribute(attr('data-view')))
       .filter(name => !this.views.some(view => view.name === name))
-      .forEach(name => { throw new Error(message(name)) });
+      .forEach(name => { throw new Error(message(name)) })
 
   }
 
@@ -182,7 +182,7 @@ class Controller {
     e.preventDefault()
 
     const name = e.currentTarget.getAttribute(attr('data-activate-view'))
-    const model = this._getModelFromView(name)
+    const model = this._getViewByName(name).model
 
     if (this._isCurrentUrl(model.url)) return
     await this._updatePage(model)
@@ -196,10 +196,9 @@ class Controller {
    * @returns {Model} - The model currently active for the given View
    * @private
    */
-  _getModelFromView (name) {
+  _getViewByName (name) {
     const element = document.querySelector(`[${attr('data-view')}="${name}"]`)
-    const view = this._viewsMap.get(element)
-    return view.model
+    return this._viewsMap.get(element)
   }
 
   /**
@@ -223,12 +222,12 @@ class Controller {
   async _updatePage (model) {
     this._model = model
     try {
-      const viewUpdates = this.views.map(view => view.setModel(model))
-      await Promise.all(viewUpdates)
+      this.views.forEach(view => view.model = model)
       const doc = await model.doc
       this._throwOnUnknownViews(doc)
       document.title = doc.title
     } catch (err) {
+      console.error(err)
       window.location.href = model.url
     }
   }

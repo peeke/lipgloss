@@ -1,10 +1,10 @@
-import 'regenerator-runtime/runtime';
-import lipgloss from '../../../src/index';
+import 'regenerator-runtime/runtime'
+import lipgloss from '../../../src/index'
 import AnimationTransition from './transitions/AnimationTransition'
 
 lipgloss.init({
-  defaultViews: ['main'],
+  defaultHints: ['main', 'navigation'],
   transitions: {
     main: AnimationTransition
   }
-});
+})

@@ -1,6 +1,6 @@
-import 'regenerator-runtime/runtime';
-import lipgloss from '../../../src/index';
+import 'regenerator-runtime/runtime'
+import lipgloss from '../../../src/index'
 
 lipgloss.init({
-  defaultViews: ['main']
-});
+  defaultHints: ['main', 'navigation']
+})

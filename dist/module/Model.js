@@ -12,7 +12,7 @@ class Model {
    * @param {object} fetchOptions = The options used to fetch the url
    */
   constructor (options, fetchOptions) {
-    this._request =  new Request(options.url, fetchOptions)
+    this._request = new Request(options.url, fetchOptions)
     this._hints = options.hints || []
     this._doc = null
   }
@@ -56,7 +56,7 @@ class Model {
   querySelector (selector = 'body') {
     return this.doc
       .then(doc => doc.querySelector(selector))
-      .then(node => (node && node.innerHTML) ? node : Promise.reject())
+      .then(node => node || Promise.reject())
   }
 
   /**
