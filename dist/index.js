@@ -371,7 +371,7 @@ var View = function () {
                 }
 
                 _context.next = 6;
-                return this._exit();
+                return this._exit(true);
 
               case 6:
                 this.loading && this._transition.loading();

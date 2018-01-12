@@ -154,7 +154,7 @@ class View {
     this.loading = true
     model.doc.then(() => { this.loading = false })
 
-    this.active && await this._exit()
+    this.active && await this._exit(true)
     this.loading && this._transition.loading()
 
     const node = await model.querySelector(this.selector)
