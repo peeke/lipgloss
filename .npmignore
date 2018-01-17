@@ -1,4 +1,5 @@
-.cache/
-demos/
+examples/
 docs/
 src/
+rollup.config.js
+.jsdoc.json

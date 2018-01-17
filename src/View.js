@@ -22,9 +22,9 @@ class View {
   constructor (element, options = {}) {
 
     this._element = element
-    this._options = {...View.options, ...options}
+    this._options = Object.assign(View.options, options)
 
-    this.active = !!this._element.innerHTML
+    this.active = !!this._element.innerHTML.trim()
     this._persist = this._element.hasAttribute(attr('data-persist-view'))
     this._activeModel = this._options.model
 
@@ -41,12 +41,24 @@ class View {
    * Default options
    * @type {object}
    */
-  static options = {
-    name: null,
-    persist: false,
-    transition: Transition,
-    selector: null,
-    model: null
+  static get options () {
+    return {
+      name: null,
+      persist: false,
+      transition: Transition,
+      selector: null,
+      model: null
+    }
+  }
+
+  get eventOptions () {
+    return {
+      bubbles: true,
+      cancelable: true,
+      detail: {
+        name: this._name
+      }
+    }
   }
 
   /**
@@ -89,7 +101,7 @@ class View {
 
     this._isLoading = bool
     const loadingViews = document.body.hasAttribute(attr('data-views-loading'))
-      ? document.body.getAttribute(attr('data-views-loading')).split(' ') || []
+      ? document.body.getAttribute(attr('data-views-loading')).split(' ')
       : []
 
     const newLoadingViews = bool
@@ -113,24 +125,25 @@ class View {
    */
   set model (model) {
 
-    const htmlContainsViews = model.includesView(this._options.name)
-      // When the model explicitly includes this view name, we assume the view is in the HTML
-      ? Promise.resolve()
-      // When the model doesn't include the view name, we load the HTML first to check if this view is in the HTML
-      : model.querySelector(this.selector)
+    if (this._activeModel && this._activeModel.url === model.url) {
+      return
+    }
 
-    htmlContainsViews
+    const modelHasHint = model.includesView(this._options.name)
+    const docHasView = Promise.resolve(modelHasHint || model.querySelector(this.selector))
+    docHasView
       .then(() => this._activate(model), () => this._deactivate())
+      .catch(() => {
+        throw new Error(`Hint '${this._options.name}' was given, but not found in the loaded document.`)
+      })
 
   }
 
   /**
-   * Method to check whether the given name is the name of this view. The name itself is not exposed, to prevent it being used in custom logic.
-   * @param {string} name - The name to check
-   * @returns {boolean}
+   * @returns {string} - The name of this view
    */
-  hasName (name) {
-    return this._options.name === name
+  get name () {
+    return this._options.name
   }
 
   /**
@@ -141,22 +154,27 @@ class View {
    */
   async _activate (model) {
 
-    if (this._activeModel && this._activeModel.url === model.url) {
-      this.active = true
-      return
-    }
-
     this.loading = true
     model.doc.then(() => { this.loading = false })
 
-    this.active && await this._transition.exit()
+    this.active && await this._exit(true)
     this.loading && this._transition.loading()
 
     const node = await model.querySelector(this.selector)
-    this._activeModel = model
+    const active = !!node.innerHTML.trim()
 
-    await this._transition.enter(node)
-    this.active = true
+    if (active) {
+      await this._enter(node)
+      this._activeModel = model
+    } else {
+      this._activeModel = null
+    }
+
+    this.active = active
+    this._transition.done()
+
+    const event = active ? 'viewactive' : 'viewinactive'
+    this._element.dispatchEvent(new CustomEvent(event, this.eventOptions))
 
   }
 
@@ -167,14 +185,37 @@ class View {
   async _deactivate () {
 
     if (!this.active) return
+    if (this._persist) return
 
-    if (!this._persist) {
-      this._activeModel = null
-      await this._transition.exit(this._element)
-    }
-
+    await this._exit()
     this.active = false
+    this._transition.done()
+    this._element.dispatchEvent(new CustomEvent('viewinactive', this.eventOptions))
+    this._activeModel = null
 
+  }
+
+  /**
+   * Initialize the enter transition and fire relevant lifecycle events
+   * @param {Element} node - The new node to update the view with
+   * @returns {Promise.<void>}
+   * @private
+   */
+  async _enter (node) {
+    this._element.dispatchEvent(new CustomEvent('viewwillenter', this.eventOptions))
+    await this._transition.enter(node)
+    this._element.dispatchEvent(new CustomEvent('viewdidenter', this.eventOptions))
+  }
+
+  /**
+   * Initialize the exit transition and fire relevant lifecycle events
+   * @returns {Promise.<void>}
+   * @private
+   */
+  async _exit () {
+    this._element.dispatchEvent(new CustomEvent('viewwillexit', this.eventOptions))
+    await this._transition.exit()
+    this._element.dispatchEvent(new CustomEvent('viewdidexit', this.eventOptions))
   }
 
 }
