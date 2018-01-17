@@ -1,6 +1,5 @@
 import Transition from './Transition'
 import config from './Config'
-import dispatchEvent from './utils/dispatchEvent'
 
 const unique = arr => Array.from(new Set(arr))
 const attr = key => config.attribute(key)
@@ -132,7 +131,11 @@ class View {
 
     const modelHasHint = model.includesView(this._options.name)
     const docHasView = Promise.resolve(modelHasHint || model.querySelector(this.selector))
-    docHasView.then(() => this._activate(model), () => this._deactivate())
+    docHasView
+      .then(() => this._activate(model), () => this._deactivate())
+      .catch(() => {
+        throw new Error(`Hint '${this._options.name}' was given, but not found in the loaded document.`)
+      })
 
   }
 
@@ -168,6 +171,10 @@ class View {
     }
 
     this.active = active
+    this._transition.done()
+
+    const event = active ? 'viewactive' : 'viewinactive'
+    this._element.dispatchEvent(new CustomEvent(event, this.eventOptions))
 
   }
 
@@ -182,6 +189,8 @@ class View {
 
     await this._exit()
     this.active = false
+    this._transition.done()
+    this._element.dispatchEvent(new CustomEvent('viewinactive', this.eventOptions))
     this._activeModel = null
 
   }
@@ -193,9 +202,9 @@ class View {
    * @private
    */
   async _enter (node) {
-    dispatchEvent(this._element, 'viewwillenter', this.eventOptions)
+    this._element.dispatchEvent(new CustomEvent('viewwillenter', this.eventOptions))
     await this._transition.enter(node)
-    dispatchEvent(this._element, 'viewdidenter', this.eventOptions)
+    this._element.dispatchEvent(new CustomEvent('viewdidenter', this.eventOptions))
   }
 
   /**
@@ -204,9 +213,9 @@ class View {
    * @private
    */
   async _exit () {
-    dispatchEvent(this._element, 'viewwillexit', this.eventOptions)
+    this._element.dispatchEvent(new CustomEvent('viewwillexit', this.eventOptions))
     await this._transition.exit()
-    dispatchEvent(this._element, 'viewdidexit', this.eventOptions)
+    this._element.dispatchEvent(new CustomEvent('viewdidexit', this.eventOptions))
   }
 
 }

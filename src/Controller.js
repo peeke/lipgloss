@@ -2,7 +2,6 @@ import View from './View'
 import Model from './Model'
 import Transition from './Transition'
 import config from './Config'
-import dispatchEvent from './utils/dispatchEvent'
 
 const SUPPORTED = 'pushState' in history
 const attr = key => config.attribute(key)
@@ -227,7 +226,6 @@ class Controller {
       this._throwOnUnknownViews(doc)
       document.title = doc.title
     } catch (err) {
-      console.error(err)
       window.location.href = model.url
     }
   }
@@ -249,9 +247,7 @@ class Controller {
     const method = replaceEntry ? 'replaceState' : 'pushState'
     history[method](state, document.title, model.url)
 
-    dispatchEvent(window, 'statechange', {
-      detail: state
-    })
+    window.dispatchEvent(new CustomEvent('statechange', {detail: state}))
 
   }
 

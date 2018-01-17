@@ -50,9 +50,16 @@ class Transition {
    */
   async enter (node) {
     this._view.innerHTML = node.innerHTML
+    requestAnimationFrame(() => {
+      this._view.removeAttribute(attr('data-transition'))
+      reflow(this._view)
+      this._view.setAttribute(attr('data-transition'), 'in')
+    })
+  }
+
+  done() {
     this._view.removeAttribute(attr('data-transition'))
     reflow(this._view)
-    this._view.setAttribute(attr('data-transition'), 'in')
   }
 
 }

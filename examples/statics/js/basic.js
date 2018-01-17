@@ -979,16 +979,20 @@ var Transition = function () {
     key: 'enter',
     value: function () {
       var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(node) {
+        var _this = this;
+
         return regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
                 this._view.innerHTML = node.innerHTML;
-                this._view.removeAttribute(attr$2('data-transition'));
-                reflow(this._view);
-                this._view.setAttribute(attr$2('data-transition'), 'in');
+                requestAnimationFrame(function () {
+                  _this._view.removeAttribute(attr$2('data-transition'));
+                  reflow(_this._view);
+                  _this._view.setAttribute(attr$2('data-transition'), 'in');
+                });
 
-              case 4:
+              case 2:
               case 'end':
                 return _context3.stop();
             }
@@ -1002,15 +1006,15 @@ var Transition = function () {
 
       return enter;
     }()
+  }, {
+    key: 'done',
+    value: function done() {
+      this._view.removeAttribute(attr$2('data-transition'));
+      reflow(this._view);
+    }
   }]);
   return Transition;
 }();
-
-var dispatchEvent = function dispatchEvent(source, event) {
-  var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : { bubbles: true, cancelable: true };
-
-  source.dispatchEvent(new CustomEvent(event, options));
-};
 
 var unique = function unique(arr) {
   return Array.from(new Set(arr));
@@ -1075,7 +1079,7 @@ var View = function () {
       var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(model) {
         var _this = this;
 
-        var node, active;
+        var node, active, event;
         return regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
@@ -1094,7 +1098,7 @@ var View = function () {
                 }
 
                 _context.next = 6;
-                return this._exit();
+                return this._exit(true);
 
               case 6:
                 this.loading && this._transition.loading();
@@ -1125,8 +1129,13 @@ var View = function () {
               case 18:
 
                 this.active = active;
+                this._transition.done();
 
-              case 19:
+                event = active ? 'viewactive' : 'viewinactive';
+
+                this._element.dispatchEvent(new CustomEvent(event, this.eventOptions));
+
+              case 22:
               case 'end':
                 return _context.stop();
             }
@@ -1175,9 +1184,11 @@ var View = function () {
 
               case 6:
                 this.active = false;
+                this._transition.done();
+                this._element.dispatchEvent(new CustomEvent('viewinactive', this.eventOptions));
                 this._activeModel = null;
 
-              case 8:
+              case 10:
               case 'end':
                 return _context2.stop();
             }
@@ -1207,12 +1218,12 @@ var View = function () {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                dispatchEvent(this._element, 'viewwillenter', this.eventOptions);
+                this._element.dispatchEvent(new CustomEvent('viewwillenter', this.eventOptions));
                 _context3.next = 3;
                 return this._transition.enter(node);
 
               case 3:
-                dispatchEvent(this._element, 'viewdidenter', this.eventOptions);
+                this._element.dispatchEvent(new CustomEvent('viewdidenter', this.eventOptions));
 
               case 4:
               case 'end':
@@ -1243,12 +1254,12 @@ var View = function () {
           while (1) {
             switch (_context4.prev = _context4.next) {
               case 0:
-                dispatchEvent(this._element, 'viewwillexit', this.eventOptions);
+                this._element.dispatchEvent(new CustomEvent('viewwillexit', this.eventOptions));
                 _context4.next = 3;
                 return this._transition.exit();
 
               case 3:
-                dispatchEvent(this._element, 'viewdidexit', this.eventOptions);
+                this._element.dispatchEvent(new CustomEvent('viewdidexit', this.eventOptions));
 
               case 4:
               case 'end':
@@ -1364,6 +1375,8 @@ var View = function () {
         return _this3._activate(model);
       }, function () {
         return _this3._deactivate();
+      }).catch(function () {
+        throw new Error('Hint \'' + _this3._options.name + '\' was given, but not found in the loaded document.');
       });
     }
 
@@ -1818,17 +1831,16 @@ var Controller = function () {
 
                 this._throwOnUnknownViews(doc);
                 document.title = doc.title;
-                _context3.next = 14;
+                _context3.next = 13;
                 break;
 
               case 10:
                 _context3.prev = 10;
                 _context3.t0 = _context3['catch'](1);
 
-                console.error(_context3.t0);
                 window.location.href = model.url;
 
-              case 14:
+              case 13:
               case 'end':
                 return _context3.stop();
             }
@@ -1865,9 +1877,7 @@ var Controller = function () {
       var method = replaceEntry ? 'replaceState' : 'pushState';
       history[method](state, document.title, model.url);
 
-      dispatchEvent(window, 'statechange', {
-        detail: state
-      });
+      window.dispatchEvent(new CustomEvent('statechange', { detail: state }));
     }
   }, {
     key: 'views',

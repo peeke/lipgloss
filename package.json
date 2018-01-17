@@ -1,14 +1,14 @@
 {
   "name": "lipgloss",
-  "version": "0.0.1",
+  "version": "0.0.1-alpha.1",
   "description": "A bit of lipgloss to make your website shine",
   "main": "dist/index.js",
-  "module": "dist/module/index.js",
+  "module": "module/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm-run-all bundle copy",
     "bundle": "rollup -c",
-    "copy": "cpx \"src/**/*.js\" dist/module && cpx \"src/*.js\" dist/module",
+    "copy": "cpx \"src/*.js\" module",
     "dev": "npm-run-all -p -r examples:*",
     "docs": "node_modules/.bin/jsdoc -c .jsdoc.json",
     "docs:serve": "npm run docs && http-server docs -p 3001",
@@ -28,7 +28,7 @@
     "transitions",
     "motion"
   ],
-  "author": "@peeke__",
+  "author": "@peeke",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/peeke/lipgloss/issues"
