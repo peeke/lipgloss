@@ -1,6 +1,6 @@
 {
   "name": "lipgloss",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.1-alpha.1",
   "description": "A bit of lipgloss to make your website shine",
   "main": "dist/index.js",
   "module": "module/index.js",
