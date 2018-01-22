@@ -99,10 +99,12 @@ class Controller {
       .filter(element => !this._viewsMap.has(element))
       .forEach(element => this._viewsMap.set(element, this._buildView(element, this._model)))
 
-    context.querySelectorAll(`[href][${attr('data-view-link')}]`)
+    Array
+      .from(context.querySelectorAll(`[href][${attr('data-view-link')}]`))
       .forEach(link => link.addEventListener('click', this._onLinkClick))
 
-    context.querySelectorAll(`[${attr('data-activate-view')}]`)
+    Array
+      .from(context.querySelectorAll(`[${attr('data-activate-view')}]`))
       .forEach(link => link.addEventListener('click', this._onActivateViewClick))
 
   }
@@ -226,6 +228,7 @@ class Controller {
       this._throwOnUnknownViews(doc)
       document.title = doc.title
     } catch (err) {
+      console.error(err)
       window.location.href = model.url
     }
   }

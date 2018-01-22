@@ -557,10 +557,7 @@ var View = function () {
     get: function get$$1() {
       return {
         bubbles: true,
-        cancelable: true,
-        detail: {
-          name: this._name
-        }
+        cancelable: true
       };
     }
 
@@ -878,11 +875,11 @@ var Controller = function () {
         return _this2._viewsMap.set(element, _this2._buildView(element, _this2._model));
       });
 
-      context.querySelectorAll('[href][' + attr('data-view-link') + ']').forEach(function (link) {
+      Array.from(context.querySelectorAll('[href][' + attr('data-view-link') + ']')).forEach(function (link) {
         return link.addEventListener('click', _this2._onLinkClick);
       });
 
-      context.querySelectorAll('[' + attr('data-activate-view') + ']').forEach(function (link) {
+      Array.from(context.querySelectorAll('[' + attr('data-activate-view') + ']')).forEach(function (link) {
         return link.addEventListener('click', _this2._onActivateViewClick);
       });
     }
@@ -1108,16 +1105,17 @@ var Controller = function () {
 
                 this._throwOnUnknownViews(doc);
                 document.title = doc.title;
-                _context3.next = 13;
+                _context3.next = 14;
                 break;
 
               case 10:
                 _context3.prev = 10;
                 _context3.t0 = _context3['catch'](1);
 
+                console.error(_context3.t0);
                 window.location.href = model.url;
 
-              case 13:
+              case 14:
               case 'end':
                 return _context3.stop();
             }

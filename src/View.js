@@ -54,10 +54,7 @@ class View {
   get eventOptions () {
     return {
       bubbles: true,
-      cancelable: true,
-      detail: {
-        name: this._name
-      }
+      cancelable: true
     }
   }
 
