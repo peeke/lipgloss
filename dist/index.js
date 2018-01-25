@@ -157,19 +157,24 @@ var attr$2 = function attr(key) {
 var reflow = function reflow(element) {
   return element.offsetHeight;
 };
+var eventOptions$1 = { bubbles: true, cancelable: true
 
-/**
- * @class Transition
- * @classdesc Basic Transition class. All transitions you create should have this class as (grand)parent. When extending Transition,
- * as a rule of thumb it's good to call this the super functions before your own functionality. E.g.:
- * Sometimes you may want to do some preperation work, in which it is just fine to do this before you call super.exit()
- * @example <caption>Extending Transition</caption>
- * async exit() {
- *   super.exit()
- *   // Your code
- * }
- */
-
+  /**
+   * @class Transition
+   * @classdesc Basic Transition class. All transitions you create should have this class as
+   * (grand)parent. When extending Transition, as a rule of thumb it's good to call this the
+   * super functions before your own functionality. E.g.: Sometimes you may want to do some
+   * preperation work, in which it is just fine to do this before you call super.exit()
+   *
+   * If you extend Transition, but choose to implement your own enter method, you have to call
+   * this.updateHtml(newNode) to update the HTML in order to preserve the lifecycle events.
+   * @example <caption>Extending Transition</caption>
+   * async exit() {
+   *   super.exit()
+   *   // Your code
+   * }
+   */
+};
 var Transition = function () {
 
   /**
@@ -215,7 +220,8 @@ var Transition = function () {
     }()
 
     /**
-     * @description Loading transition for the given view. This transition state will only occur if the requested document is still loading when exit() completes.
+     * @description Loading transition for the given view. This transition state will only occur
+     * if the requested document is still loading when exit() completes.
      * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'loading'
      */
 
@@ -247,29 +253,25 @@ var Transition = function () {
     }()
 
     /**
-     * @description Exit transition for the given view.
-     * @param {String} node - The new views node
+     * @description Enter transition for the given view.
+     * @param {String} newNode - The new views node
      * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
      */
 
   }, {
     key: 'enter',
     value: function () {
-      var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(node) {
-        var _this = this;
-
+      var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(newNode) {
         return regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                this._view.innerHTML = node.innerHTML;
-                requestAnimationFrame(function () {
-                  _this._view.removeAttribute(attr$2('data-transition'));
-                  reflow(_this._view);
-                  _this._view.setAttribute(attr$2('data-transition'), 'in');
-                });
+                this.updateHtml(newNode);
+                this._view.removeAttribute(attr$2('data-transition'));
+                reflow(this._view);
+                this._view.setAttribute(attr$2('data-transition'), 'in');
 
-              case 2:
+              case 4:
               case 'end':
                 return _context3.stop();
             }
@@ -283,6 +285,24 @@ var Transition = function () {
 
       return enter;
     }()
+
+    /**
+     * Updates the view element with new HTML and dispatches the 'viewhtmlupdated' lifecycle event
+     * @param {String} newNode - The new views node
+     */
+
+  }, {
+    key: 'updateHtml',
+    value: function updateHtml(newNode) {
+      this._view.innerHTML = newNode.innerHTML;
+      var event = new CustomEvent('viewhtmlupdated', eventOptions$1);
+      this._view.dispatchEvent(event);
+    }
+
+    /**
+     * Cleans up after transitions have completed
+     */
+
   }, {
     key: 'done',
     value: function done() {
@@ -299,12 +319,13 @@ var unique = function unique(arr) {
 var attr$1 = function attr(key) {
   return config.attribute(key);
 };
+var eventOptions = { bubbles: true, cancelable: true
 
-/**
- * @class View
- * @classdesc This class manages it's own bit of the document, invoking the transitions for it.
- */
-
+  /**
+   * @class View
+   * @classdesc This class manages it's own bit of the document, invoking the transitions for it.
+   */
+};
 var View = function () {
 
   /**
@@ -325,11 +346,11 @@ var View = function () {
     this._options = Object.assign(View.options, options);
 
     this.active = !!this._element.innerHTML.trim();
-    this._persist = this._element.hasAttribute(attr$1('data-persist-view'));
-    this._activeModel = this._options.model;
 
-    var ViewTransition = this._options.transition;
-    this._transition = new ViewTransition(this._element);
+    this._persist = typeof this._options.persist === 'undefined' ? this._element.hasAttribute(attr$1('data-persist-view')) : this._options.persist;
+
+    this._activeModel = this._options.model;
+    this._transition = new this._options.transition(this._element);
 
     if (!(this._transition instanceof Transition)) {
       throw new Error('Provided transition is not an instance of Transition');
@@ -356,7 +377,7 @@ var View = function () {
       var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(model) {
         var _this = this;
 
-        var node, active, event;
+        var node, active;
         return regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
@@ -367,52 +388,52 @@ var View = function () {
                   _this.loading = false;
                 });
 
-                _context.t0 = this.active;
-
-                if (!_context.t0) {
-                  _context.next = 6;
+                if (!this.active) {
+                  _context.next = 7;
                   break;
                 }
 
+                this._dispatch('viewwillexit');
                 _context.next = 6;
-                return this._exit(true);
+                return this._transition.exit();
 
               case 6:
+                this._dispatch('viewdidexit');
+
+              case 7:
                 this.loading && this._transition.loading();
 
-                _context.next = 9;
+                _context.next = 10;
                 return model.querySelector(this.selector);
 
-              case 9:
+              case 10:
                 node = _context.sent;
                 active = !!node.innerHTML.trim();
 
                 if (!active) {
-                  _context.next = 17;
+                  _context.next = 20;
                   break;
                 }
 
-                _context.next = 14;
-                return this._enter(node);
+                this._dispatch('viewwillenter');
+                _context.next = 16;
+                return this._transition.enter(node);
 
-              case 14:
+              case 16:
+                this._dispatch('viewdidenter');
                 this._activeModel = model;
-                _context.next = 18;
+                _context.next = 21;
                 break;
 
-              case 17:
+              case 20:
                 this._activeModel = null;
 
-              case 18:
+              case 21:
 
                 this.active = active;
                 this._transition.done();
 
-                event = active ? 'viewactive' : 'viewinactive';
-
-                this._element.dispatchEvent(new CustomEvent(event, this.eventOptions));
-
-              case 22:
+              case 23:
               case 'end':
                 return _context.stop();
             }
@@ -456,16 +477,19 @@ var View = function () {
                 return _context2.abrupt('return');
 
               case 4:
-                _context2.next = 6;
-                return this._exit();
 
-              case 6:
+                this._dispatch('viewwillexit');
+                _context2.next = 7;
+                return this._transition.exit();
+
+              case 7:
+                this._dispatch('viewdidexit');
+
                 this.active = false;
                 this._transition.done();
-                this._element.dispatchEvent(new CustomEvent('viewinactive', this.eventOptions));
                 this._activeModel = null;
 
-              case 10:
+              case 11:
               case 'end':
                 return _context2.stop();
             }
@@ -479,95 +503,19 @@ var View = function () {
 
       return _deactivate;
     }()
-
-    /**
-     * Initialize the enter transition and fire relevant lifecycle events
-     * @param {Element} node - The new node to update the view with
-     * @returns {Promise.<void>}
-     * @private
-     */
-
   }, {
-    key: '_enter',
-    value: function () {
-      var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(node) {
-        return regeneratorRuntime.wrap(function _callee3$(_context3) {
-          while (1) {
-            switch (_context3.prev = _context3.next) {
-              case 0:
-                this._element.dispatchEvent(new CustomEvent('viewwillenter', this.eventOptions));
-                _context3.next = 3;
-                return this._transition.enter(node);
-
-              case 3:
-                this._element.dispatchEvent(new CustomEvent('viewdidenter', this.eventOptions));
-
-              case 4:
-              case 'end':
-                return _context3.stop();
-            }
-          }
-        }, _callee3, this);
-      }));
-
-      function _enter(_x3) {
-        return _ref3.apply(this, arguments);
-      }
-
-      return _enter;
-    }()
-
-    /**
-     * Initialize the exit transition and fire relevant lifecycle events
-     * @returns {Promise.<void>}
-     * @private
-     */
-
-  }, {
-    key: '_exit',
-    value: function () {
-      var _ref4 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee4() {
-        return regeneratorRuntime.wrap(function _callee4$(_context4) {
-          while (1) {
-            switch (_context4.prev = _context4.next) {
-              case 0:
-                this._element.dispatchEvent(new CustomEvent('viewwillexit', this.eventOptions));
-                _context4.next = 3;
-                return this._transition.exit();
-
-              case 3:
-                this._element.dispatchEvent(new CustomEvent('viewdidexit', this.eventOptions));
-
-              case 4:
-              case 'end':
-                return _context4.stop();
-            }
-          }
-        }, _callee4, this);
-      }));
-
-      function _exit() {
-        return _ref4.apply(this, arguments);
-      }
-
-      return _exit;
-    }()
-  }, {
-    key: 'eventOptions',
-    get: function get$$1() {
-      return {
-        bubbles: true,
-        cancelable: true
-      };
+    key: '_dispatch',
+    value: function _dispatch(eventName) {
+      this._element.dispatchEvent(new CustomEvent(eventName, eventOptions));
     }
+  }, {
+    key: 'selector',
+
 
     /**
      * The selector to use to obtain a new node for this View from the loaded document
      * @returns {string}
      */
-
-  }, {
-    key: 'selector',
     get: function get$$1() {
       return this._options.selector || '[' + attr$1('data-view') + '="' + this._options.name + '"]';
     }

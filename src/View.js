@@ -3,6 +3,7 @@ import config from './Config'
 
 const unique = arr => Array.from(new Set(arr))
 const attr = key => config.attribute(key)
+const eventOptions = { bubbles: true, cancelable: true }
 
 /**
  * @class View
@@ -25,11 +26,13 @@ class View {
     this._options = Object.assign(View.options, options)
 
     this.active = !!this._element.innerHTML.trim()
-    this._persist = this._element.hasAttribute(attr('data-persist-view'))
-    this._activeModel = this._options.model
 
-    const ViewTransition = this._options.transition
-    this._transition = new ViewTransition(this._element)
+    this._persist = typeof this._options.persist === 'undefined'
+      ? this._element.hasAttribute(attr('data-persist-view'))
+      : this._options.persist
+
+    this._activeModel = this._options.model
+    this._transition = new this._options.transition(this._element)
 
     if (!(this._transition instanceof Transition)) {
       throw new Error('Provided transition is not an instance of Transition')
@@ -48,13 +51,6 @@ class View {
       transition: Transition,
       selector: null,
       model: null
-    }
-  }
-
-  get eventOptions () {
-    return {
-      bubbles: true,
-      cancelable: true
     }
   }
 
@@ -154,14 +150,20 @@ class View {
     this.loading = true
     model.doc.then(() => { this.loading = false })
 
-    this.active && await this._exit(true)
+    if (this.active) {
+      this._dispatch('viewwillexit')
+      await this._transition.exit()
+      this._dispatch('viewdidexit')
+    }
     this.loading && this._transition.loading()
 
     const node = await model.querySelector(this.selector)
     const active = !!node.innerHTML.trim()
 
     if (active) {
-      await this._enter(node)
+      this._dispatch('viewwillenter')
+      await this._transition.enter(node)
+      this._dispatch('viewdidenter')
       this._activeModel = model
     } else {
       this._activeModel = null
@@ -169,9 +171,6 @@ class View {
 
     this.active = active
     this._transition.done()
-
-    const event = active ? 'viewactive' : 'viewinactive'
-    this._element.dispatchEvent(new CustomEvent(event, this.eventOptions))
 
   }
 
@@ -184,35 +183,18 @@ class View {
     if (!this.active) return
     if (this._persist) return
 
-    await this._exit()
+    this._dispatch('viewwillexit')
+    await this._transition.exit()
+    this._dispatch('viewdidexit')
+
     this.active = false
     this._transition.done()
-    this._element.dispatchEvent(new CustomEvent('viewinactive', this.eventOptions))
     this._activeModel = null
 
   }
 
-  /**
-   * Initialize the enter transition and fire relevant lifecycle events
-   * @param {Element} node - The new node to update the view with
-   * @returns {Promise.<void>}
-   * @private
-   */
-  async _enter (node) {
-    this._element.dispatchEvent(new CustomEvent('viewwillenter', this.eventOptions))
-    await this._transition.enter(node)
-    this._element.dispatchEvent(new CustomEvent('viewdidenter', this.eventOptions))
-  }
-
-  /**
-   * Initialize the exit transition and fire relevant lifecycle events
-   * @returns {Promise.<void>}
-   * @private
-   */
-  async _exit () {
-    this._element.dispatchEvent(new CustomEvent('viewwillexit', this.eventOptions))
-    await this._transition.exit()
-    this._element.dispatchEvent(new CustomEvent('viewdidexit', this.eventOptions))
+  _dispatch(eventName) {
+    this._element.dispatchEvent(new CustomEvent(eventName, eventOptions))
   }
 
 }
