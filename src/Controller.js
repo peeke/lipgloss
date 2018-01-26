@@ -53,6 +53,7 @@ class Controller {
       defaultHints: [],
       transitions: {},
       sanitizeUrl: url => url,
+      updateDocument: doc => { document.title = doc.title },
       attributes: {},
       fetch: {
         credentials: 'same-origin',
@@ -226,7 +227,7 @@ class Controller {
       this.views.forEach(view => view.model = model)
       const doc = await model.doc
       this._throwOnUnknownViews(doc)
-      document.title = doc.title
+      this._options.updateDocument(doc)
     } catch (err) {
       console.error(err)
       window.location.href = model.url

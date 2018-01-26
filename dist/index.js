@@ -1052,7 +1052,7 @@ var Controller = function () {
                 doc = _context3.sent;
 
                 this._throwOnUnknownViews(doc);
-                document.title = doc.title;
+                this._options.updateDocument(doc);
                 _context3.next = 14;
                 break;
 
@@ -1125,6 +1125,9 @@ var Controller = function () {
         transitions: {},
         sanitizeUrl: function sanitizeUrl(url) {
           return url;
+        },
+        updateDocument: function updateDocument(doc) {
+          document.title = doc.title;
         },
         attributes: {},
         fetch: {
