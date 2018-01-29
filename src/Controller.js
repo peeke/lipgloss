@@ -180,16 +180,22 @@ class Controller {
    * @param {Event} e - Click event
    * @private
    */
-  async _onActivateViewClick (e) {
+  _onActivateViewClick (e) {
     e.preventDefault()
-
     const name = e.currentTarget.getAttribute(attr('data-activate-view'))
-    const model = this._getViewByName(name).model
+    this.activateView(name)
+  }
 
+  /**
+   * Activate a view by name
+   * @param {string} name - Name of the view to activate
+   * @returns {Promise.<void>}
+   */
+  async activateView (name) {
+    const model = this._getViewByName(name).model
     if (this._isCurrentUrl(model.url)) return
     await this._updatePage(model)
     this._addHistoryEntry(model)
-
   }
 
   /**

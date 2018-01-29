@@ -953,33 +953,44 @@ var Controller = function () {
 
   }, {
     key: '_onActivateViewClick',
+    value: function _onActivateViewClick(e) {
+      e.preventDefault();
+      var name = e.currentTarget.getAttribute(attr('data-activate-view'));
+      this.activateView(name);
+    }
+
+    /**
+     * Activate a view by name
+     * @param {string} name - Name of the view to activate
+     * @returns {Promise.<void>}
+     */
+
+  }, {
+    key: 'activateView',
     value: function () {
-      var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(e) {
-        var name, model;
+      var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(name) {
+        var model;
         return regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                e.preventDefault();
-
-                name = e.currentTarget.getAttribute(attr('data-activate-view'));
                 model = this._getViewByName(name).model;
 
                 if (!this._isCurrentUrl(model.url)) {
-                  _context2.next = 5;
+                  _context2.next = 3;
                   break;
                 }
 
                 return _context2.abrupt('return');
 
-              case 5:
-                _context2.next = 7;
+              case 3:
+                _context2.next = 5;
                 return this._updatePage(model);
 
-              case 7:
+              case 5:
                 this._addHistoryEntry(model);
 
-              case 8:
+              case 6:
               case 'end':
                 return _context2.stop();
             }
@@ -987,11 +998,11 @@ var Controller = function () {
         }, _callee2, this);
       }));
 
-      function _onActivateViewClick(_x3) {
+      function activateView(_x3) {
         return _ref2.apply(this, arguments);
       }
 
-      return _onActivateViewClick;
+      return activateView;
     }()
 
     /**
