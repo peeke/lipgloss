@@ -228,9 +228,11 @@ class Controller {
    * @private
    */
   async _updatePage (model) {
+    window.dispatchEvent(new CustomEvent('pagewillupdate'))
     this._model = model
     try {
-      this.views.forEach(view => view.model = model)
+      const operations = this.views.map(view => view.setModel(model))
+      Promise.all(operations).then(() => window.dispatchEvent(new CustomEvent('pagedidupdate')))
       const doc = await model.doc
       this._throwOnUnknownViews(doc)
       this._options.updateDocument(doc)

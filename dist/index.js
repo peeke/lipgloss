@@ -364,6 +364,36 @@ var View = function () {
 
 
   createClass(View, [{
+    key: 'setModel',
+
+
+    /**
+     * Set the model associated with this view
+     * @param {Model} model
+     */
+    value: function setModel(model) {
+      var _this = this;
+
+      if (this._activeModel && this._activeModel.url === model.url) {
+        return;
+      }
+
+      var modelHasHint = model.includesView(this._options.name);
+      var docHasView = Promise.resolve(modelHasHint || model.querySelector(this.selector));
+      return docHasView.then(function () {
+        return _this._activate(model);
+      }, function () {
+        return _this._deactivate();
+      }).catch(function () {
+        throw new Error('Hint \'' + _this._options.name + '\' was given, but not found in the loaded document.');
+      });
+    }
+
+    /**
+     * @returns {string} - The name of this view
+     */
+
+  }, {
     key: '_activate',
 
 
@@ -375,7 +405,7 @@ var View = function () {
      */
     value: function () {
       var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(model) {
-        var _this = this;
+        var _this2 = this;
 
         var node, active;
         return regeneratorRuntime.wrap(function _callee$(_context) {
@@ -385,7 +415,7 @@ var View = function () {
 
                 this.loading = true;
                 model.doc.then(function () {
-                  _this.loading = false;
+                  _this2.loading = false;
                 });
 
                 if (!this.active) {
@@ -557,13 +587,13 @@ var View = function () {
      */
     ,
     set: function set$$1(bool) {
-      var _this2 = this;
+      var _this3 = this;
 
       this._isLoading = bool;
       var loadingViews = document.body.hasAttribute(attr$1('data-views-loading')) ? document.body.getAttribute(attr$1('data-views-loading')).split(' ') : [];
 
       var newLoadingViews = bool ? unique([].concat(toConsumableArray(loadingViews), [this._options.name])) : loadingViews.filter(function (name) {
-        return name !== _this2._options.name;
+        return name !== _this3._options.name;
       });
 
       document.body.setAttribute(attr$1('data-views-loading'), newLoadingViews.join(' '));
@@ -578,34 +608,6 @@ var View = function () {
     get: function get$$1() {
       return this._activeModel;
     }
-
-    /**
-     * Set the model associated with this view
-     * @param {Model} model
-     */
-    ,
-    set: function set$$1(model) {
-      var _this3 = this;
-
-      if (this._activeModel && this._activeModel.url === model.url) {
-        return;
-      }
-
-      var modelHasHint = model.includesView(this._options.name);
-      var docHasView = Promise.resolve(modelHasHint || model.querySelector(this.selector));
-      docHasView.then(function () {
-        return _this3._activate(model);
-      }, function () {
-        return _this3._deactivate();
-      }).catch(function () {
-        throw new Error('Hint \'' + _this3._options.name + '\' was given, but not found in the loaded document.');
-      });
-    }
-
-    /**
-     * @returns {string} - The name of this view
-     */
-
   }, {
     key: 'name',
     get: function get$$1() {
@@ -1045,41 +1047,45 @@ var Controller = function () {
     key: '_updatePage',
     value: function () {
       var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(model) {
-        var doc;
+        var operations, doc;
         return regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
+                window.dispatchEvent(new CustomEvent('pagewillupdate'));
                 this._model = model;
-                _context3.prev = 1;
-
-                this.views.forEach(function (view) {
-                  return view.model = model;
+                _context3.prev = 2;
+                operations = this.views.map(function (view) {
+                  return view.setModel(model);
                 });
-                _context3.next = 5;
+
+                Promise.all(operations).then(function () {
+                  return window.dispatchEvent(new CustomEvent('pagedidupdate'));
+                });
+                _context3.next = 7;
                 return model.doc;
 
-              case 5:
+              case 7:
                 doc = _context3.sent;
 
                 this._throwOnUnknownViews(doc);
                 this._options.updateDocument(doc);
-                _context3.next = 14;
+                _context3.next = 16;
                 break;
 
-              case 10:
-                _context3.prev = 10;
-                _context3.t0 = _context3['catch'](1);
+              case 12:
+                _context3.prev = 12;
+                _context3.t0 = _context3['catch'](2);
 
                 console.error(_context3.t0);
                 window.location.href = model.url;
 
-              case 14:
+              case 16:
               case 'end':
                 return _context3.stop();
             }
           }
-        }, _callee3, this, [[1, 10]]);
+        }, _callee3, this, [[2, 12]]);
       }));
 
       function _updatePage(_x4) {

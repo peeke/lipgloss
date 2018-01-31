@@ -3,7 +3,7 @@ import config from './Config'
 
 const unique = arr => Array.from(new Set(arr))
 const attr = key => config.attribute(key)
-const eventOptions = { bubbles: true, cancelable: true }
+const eventOptions = {bubbles: true, cancelable: true}
 
 /**
  * @class View
@@ -116,7 +116,7 @@ class View {
    * Set the model associated with this view
    * @param {Model} model
    */
-  set model (model) {
+  setModel (model) {
 
     if (this._activeModel && this._activeModel.url === model.url) {
       return
@@ -124,7 +124,7 @@ class View {
 
     const modelHasHint = model.includesView(this._options.name)
     const docHasView = Promise.resolve(modelHasHint || model.querySelector(this.selector))
-    docHasView
+    return docHasView
       .then(() => this._activate(model), () => this._deactivate())
       .catch(() => {
         throw new Error(`Hint '${this._options.name}' was given, but not found in the loaded document.`)
@@ -193,7 +193,7 @@ class View {
 
   }
 
-  _dispatch(eventName) {
+  _dispatch (eventName) {
     this._element.dispatchEvent(new CustomEvent(eventName, eventOptions))
   }
 
