@@ -1047,7 +1047,7 @@ var Controller = function () {
     key: '_updatePage',
     value: function () {
       var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(model) {
-        var operations, doc;
+        var operations, done, doc;
         return regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
@@ -1058,10 +1058,7 @@ var Controller = function () {
                 operations = this.views.map(function (view) {
                   return view.setModel(model);
                 });
-
-                Promise.all(operations).then(function () {
-                  return window.dispatchEvent(new CustomEvent('pagedidupdate'));
-                });
+                done = Promise.all(operations);
                 _context3.next = 7;
                 return model.doc;
 
@@ -1070,22 +1067,29 @@ var Controller = function () {
 
                 this._throwOnUnknownViews(doc);
                 this._options.updateDocument(doc);
-                _context3.next = 16;
-                break;
+
+                _context3.next = 12;
+                return done;
 
               case 12:
-                _context3.prev = 12;
+                window.dispatchEvent(new CustomEvent('pagedidupdate'));
+
+                _context3.next = 19;
+                break;
+
+              case 15:
+                _context3.prev = 15;
                 _context3.t0 = _context3['catch'](2);
 
                 console.error(_context3.t0);
                 window.location.href = model.url;
 
-              case 16:
+              case 19:
               case 'end':
                 return _context3.stop();
             }
           }
-        }, _callee3, this, [[2, 12]]);
+        }, _callee3, this, [[2, 15]]);
       }));
 
       function _updatePage(_x4) {

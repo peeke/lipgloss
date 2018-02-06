@@ -231,11 +231,17 @@ class Controller {
     window.dispatchEvent(new CustomEvent('pagewillupdate'))
     this._model = model
     try {
+
       const operations = this.views.map(view => view.setModel(model))
-      Promise.all(operations).then(() => window.dispatchEvent(new CustomEvent('pagedidupdate')))
+      const done = Promise.all(operations)
+
       const doc = await model.doc
       this._throwOnUnknownViews(doc)
       this._options.updateDocument(doc)
+
+      await done
+      window.dispatchEvent(new CustomEvent('pagedidupdate'))
+
     } catch (err) {
       console.error(err)
       window.location.href = model.url
