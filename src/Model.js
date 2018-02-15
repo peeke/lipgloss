@@ -1,3 +1,7 @@
+import config from './Config'
+
+const attr = key => config.attribute(key)
+
 /**
  * @class Model
  * @classdesc The Model contains all the data needed by a View to update.
@@ -44,19 +48,10 @@ class Model {
    * @param {string} name - A name of a view
    * @returns {boolean}
    */
-  includesView (name) {
-    return this._hints.includes(name)
-  }
-
-  /**
-   * Queries the loaded document for the selector, rejects if it's not found
-   * @param {string} selector='body' - The selector to query for
-   * @returns {Promise.<node>} - The node found in the loaded document
-   */
-  querySelector (selector = 'body') {
-    return this.doc
-      .then(doc => doc.querySelector(selector))
-      .then(node => node || Promise.reject())
+  async includesView (name) {
+    if (this._hints.includes(name)) return true
+    const doc = await this.doc
+    return Boolean(doc.querySelector(`[${attr('data-view')}="${name}"]`))
   }
 
   /**

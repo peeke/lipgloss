@@ -984,7 +984,7 @@ var Transition = function () {
   }, {
     key: 'enter',
     value: function () {
-      var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(newNode) {
+      var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(newNode, newDoc) {
         return regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
@@ -1002,7 +1002,7 @@ var Transition = function () {
         }, _callee3, this);
       }));
 
-      function enter(_x) {
+      function enter(_x, _x2) {
         return _ref3.apply(this, arguments);
       }
 
@@ -1073,6 +1073,7 @@ var View = function () {
     this._persist = typeof this._options.persist === 'undefined' ? this._element.hasAttribute(attr$1('data-persist-view')) : this._options.persist;
 
     this._activeModel = this._options.model;
+    this._selector = '[' + attr$1('data-view') + '="' + this._options.name + '"]';
     this._transition = new this._options.transition(this._element);
 
     if (!(this._transition instanceof Transition)) {
@@ -1087,6 +1088,64 @@ var View = function () {
 
 
   createClass(View, [{
+    key: 'setModel',
+
+
+    /**
+     * Set the model associated with this view
+     * @param {Model} model
+     */
+    value: function () {
+      var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(model) {
+        var includesView;
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                if (!(this._activeModel && this._activeModel.url === model.url)) {
+                  _context.next = 2;
+                  break;
+                }
+
+                return _context.abrupt('return');
+
+              case 2:
+                _context.prev = 2;
+                _context.next = 5;
+                return model.includesView(this._options.name);
+
+              case 5:
+                includesView = _context.sent;
+
+                includesView ? this._activate(model) : this._deactivate();
+                _context.next = 12;
+                break;
+
+              case 9:
+                _context.prev = 9;
+                _context.t0 = _context['catch'](2);
+                throw new Error('Hint \'' + this._options.name + '\' was given, but not found in the loaded document.');
+
+              case 12:
+              case 'end':
+                return _context.stop();
+            }
+          }
+        }, _callee, this, [[2, 9]]);
+      }));
+
+      function setModel(_x2) {
+        return _ref.apply(this, arguments);
+      }
+
+      return setModel;
+    }()
+
+    /**
+     * @returns {string} - The name of this view
+     */
+
+  }, {
     key: '_activate',
 
 
@@ -1097,13 +1156,13 @@ var View = function () {
      * @private
      */
     value: function () {
-      var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(model) {
+      var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(model) {
         var _this = this;
 
-        var node, active;
-        return regeneratorRuntime.wrap(function _callee$(_context) {
+        var doc, node, active;
+        return regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
-            switch (_context.prev = _context.next) {
+            switch (_context2.prev = _context2.next) {
               case 0:
 
                 this.loading = true;
@@ -1112,12 +1171,12 @@ var View = function () {
                 });
 
                 if (!this.active) {
-                  _context.next = 7;
+                  _context2.next = 7;
                   break;
                 }
 
                 this._dispatch('viewwillexit');
-                _context.next = 6;
+                _context2.next = 6;
                 return this._transition.exit();
 
               case 6:
@@ -1126,46 +1185,47 @@ var View = function () {
               case 7:
                 this.loading && this._transition.loading();
 
-                _context.next = 10;
-                return model.querySelector(this.selector);
+                _context2.next = 10;
+                return model.doc;
 
               case 10:
-                node = _context.sent;
-                active = !!node.innerHTML.trim();
+                doc = _context2.sent;
+                node = doc.querySelector(this._selector);
+                active = node && Boolean(node.innerHTML.trim());
 
                 if (!active) {
-                  _context.next = 20;
+                  _context2.next = 21;
                   break;
                 }
 
                 this._dispatch('viewwillenter');
-                _context.next = 16;
-                return this._transition.enter(node);
+                _context2.next = 17;
+                return this._transition.enter(node, doc);
 
-              case 16:
+              case 17:
                 this._dispatch('viewdidenter');
                 this._activeModel = model;
-                _context.next = 21;
+                _context2.next = 22;
                 break;
 
-              case 20:
+              case 21:
                 this._activeModel = null;
 
-              case 21:
+              case 22:
 
                 this.active = active;
                 this._transition.done();
 
-              case 23:
+              case 24:
               case 'end':
-                return _context.stop();
+                return _context2.stop();
             }
           }
-        }, _callee, this);
+        }, _callee2, this);
       }));
 
-      function _activate(_x2) {
-        return _ref.apply(this, arguments);
+      function _activate(_x3) {
+        return _ref2.apply(this, arguments);
       }
 
       return _activate;
@@ -1179,30 +1239,30 @@ var View = function () {
   }, {
     key: '_deactivate',
     value: function () {
-      var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2() {
-        return regeneratorRuntime.wrap(function _callee2$(_context2) {
+      var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3() {
+        return regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
-            switch (_context2.prev = _context2.next) {
+            switch (_context3.prev = _context3.next) {
               case 0:
                 if (this.active) {
-                  _context2.next = 2;
+                  _context3.next = 2;
                   break;
                 }
 
-                return _context2.abrupt('return');
+                return _context3.abrupt('return');
 
               case 2:
                 if (!this._persist) {
-                  _context2.next = 4;
+                  _context3.next = 4;
                   break;
                 }
 
-                return _context2.abrupt('return');
+                return _context3.abrupt('return');
 
               case 4:
 
                 this._dispatch('viewwillexit');
-                _context2.next = 7;
+                _context3.next = 7;
                 return this._transition.exit();
 
               case 7:
@@ -1214,14 +1274,14 @@ var View = function () {
 
               case 11:
               case 'end':
-                return _context2.stop();
+                return _context3.stop();
             }
           }
-        }, _callee2, this);
+        }, _callee3, this);
       }));
 
       function _deactivate() {
-        return _ref2.apply(this, arguments);
+        return _ref3.apply(this, arguments);
       }
 
       return _deactivate;
@@ -1232,24 +1292,13 @@ var View = function () {
       this._element.dispatchEvent(new CustomEvent(eventName, eventOptions));
     }
   }, {
-    key: 'selector',
+    key: 'active',
 
-
-    /**
-     * The selector to use to obtain a new node for this View from the loaded document
-     * @returns {string}
-     */
-    get: function get$$1() {
-      return this._options.selector || '[' + attr$1('data-view') + '="' + this._options.name + '"]';
-    }
 
     /**
      * Returns whether this View is currently active. A View is set to active when its entered and set to inactive when its exited.
      * @returns {boolean} - Active
      */
-
-  }, {
-    key: 'active',
     get: function get$$1() {
       return this._active;
     }
@@ -1301,34 +1350,6 @@ var View = function () {
     get: function get$$1() {
       return this._activeModel;
     }
-
-    /**
-     * Set the model associated with this view
-     * @param {Model} model
-     */
-    ,
-    set: function set$$1(model) {
-      var _this3 = this;
-
-      if (this._activeModel && this._activeModel.url === model.url) {
-        return;
-      }
-
-      var modelHasHint = model.includesView(this._options.name);
-      var docHasView = Promise.resolve(modelHasHint || model.querySelector(this.selector));
-      docHasView.then(function () {
-        return _this3._activate(model);
-      }, function () {
-        return _this3._deactivate();
-      }).catch(function () {
-        throw new Error('Hint \'' + _this3._options.name + '\' was given, but not found in the loaded document.');
-      });
-    }
-
-    /**
-     * @returns {string} - The name of this view
-     */
-
   }, {
     key: 'name',
     get: function get$$1() {
@@ -1341,7 +1362,6 @@ var View = function () {
         name: null,
         persist: false,
         transition: Transition,
-        selector: null,
         model: null
       };
     }
@@ -1349,10 +1369,15 @@ var View = function () {
   return View;
 }();
 
+var attr$3 = function attr(key) {
+  return config.attribute(key);
+};
+
 /**
  * @class Model
  * @classdesc The Model contains all the data needed by a View to update.
  */
+
 var Model = function () {
 
   /**
@@ -1385,27 +1410,42 @@ var Model = function () {
      * @param {string} name - A name of a view
      * @returns {boolean}
      */
-    value: function includesView(name) {
-      return this._hints.includes(name);
-    }
+    value: function () {
+      var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(name) {
+        var doc;
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                if (!this._hints.includes(name)) {
+                  _context.next = 2;
+                  break;
+                }
 
-    /**
-     * Queries the loaded document for the selector, rejects if it's not found
-     * @param {string} selector='body' - The selector to query for
-     * @returns {Promise.<node>} - The node found in the loaded document
-     */
+                return _context.abrupt('return', true);
 
-  }, {
-    key: 'querySelector',
-    value: function querySelector() {
-      var selector = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'body';
+              case 2:
+                _context.next = 4;
+                return this.doc;
 
-      return this.doc.then(function (doc) {
-        return doc.querySelector(selector);
-      }).then(function (node) {
-        return node || Promise.reject();
-      });
-    }
+              case 4:
+                doc = _context.sent;
+                return _context.abrupt('return', Boolean(doc.querySelector('[' + attr$3('data-view') + '="' + name + '"]')));
+
+              case 6:
+              case 'end':
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+
+      function includesView(_x) {
+        return _ref.apply(this, arguments);
+      }
+
+      return includesView;
+    }()
 
     /**
      * Get an object representation of the Model, which can be added to the history state. You can pass it to the
@@ -1676,33 +1716,44 @@ var Controller = function () {
 
   }, {
     key: '_onActivateViewClick',
+    value: function _onActivateViewClick(e) {
+      e.preventDefault();
+      var name = e.currentTarget.getAttribute(attr('data-activate-view'));
+      this.activateView(name);
+    }
+
+    /**
+     * Activate a view by name
+     * @param {string} name - Name of the view to activate
+     * @returns {Promise.<void>}
+     */
+
+  }, {
+    key: 'activateView',
     value: function () {
-      var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(e) {
-        var name, model;
+      var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(name) {
+        var model;
         return regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                e.preventDefault();
-
-                name = e.currentTarget.getAttribute(attr('data-activate-view'));
                 model = this._getViewByName(name).model;
 
                 if (!this._isCurrentUrl(model.url)) {
-                  _context2.next = 5;
+                  _context2.next = 3;
                   break;
                 }
 
                 return _context2.abrupt('return');
 
-              case 5:
-                _context2.next = 7;
+              case 3:
+                _context2.next = 5;
                 return this._updatePage(model);
 
-              case 7:
+              case 5:
                 this._addHistoryEntry(model);
 
-              case 8:
+              case 6:
               case 'end':
                 return _context2.stop();
             }
@@ -1710,11 +1761,11 @@ var Controller = function () {
         }, _callee2, this);
       }));
 
-      function _onActivateViewClick(_x3) {
+      function activateView(_x3) {
         return _ref2.apply(this, arguments);
       }
 
-      return _onActivateViewClick;
+      return activateView;
     }()
 
     /**
@@ -1757,41 +1808,49 @@ var Controller = function () {
     key: '_updatePage',
     value: function () {
       var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(model) {
-        var doc;
+        var operations, done, doc;
         return regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
+                window.dispatchEvent(new CustomEvent('pagewillupdate'));
                 this._model = model;
-                _context3.prev = 1;
-
-                this.views.forEach(function (view) {
-                  return view.model = model;
+                _context3.prev = 2;
+                operations = this.views.map(function (view) {
+                  return view.setModel(model);
                 });
-                _context3.next = 5;
+                done = Promise.all(operations);
+                _context3.next = 7;
                 return model.doc;
 
-              case 5:
+              case 7:
                 doc = _context3.sent;
 
                 this._throwOnUnknownViews(doc);
-                document.title = doc.title;
-                _context3.next = 14;
+                this._options.updateDocument(doc);
+
+                _context3.next = 12;
+                return done;
+
+              case 12:
+                window.dispatchEvent(new CustomEvent('pagedidupdate'));
+
+                _context3.next = 19;
                 break;
 
-              case 10:
-                _context3.prev = 10;
-                _context3.t0 = _context3['catch'](1);
+              case 15:
+                _context3.prev = 15;
+                _context3.t0 = _context3['catch'](2);
 
                 console.error(_context3.t0);
                 window.location.href = model.url;
 
-              case 14:
+              case 19:
               case 'end':
                 return _context3.stop();
             }
           }
-        }, _callee3, this, [[1, 10]]);
+        }, _callee3, this, [[2, 15]]);
       }));
 
       function _updatePage(_x4) {
@@ -1848,6 +1907,9 @@ var Controller = function () {
         transitions: {},
         sanitizeUrl: function sanitizeUrl(url) {
           return url;
+        },
+        updateDocument: function updateDocument(doc) {
+          document.title = doc.title;
         },
         attributes: {},
         fetch: {

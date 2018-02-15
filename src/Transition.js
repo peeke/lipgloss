@@ -54,7 +54,7 @@ class Transition {
    * @param {String} newNode - The new views node
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
-  async enter (newNode) {
+  async enter (newNode, newDoc) {
     this.updateHtml(newNode)
     this._view.removeAttribute(attr('data-transition'))
     reflow(this._view)

@@ -32,6 +32,7 @@ class View {
       : this._options.persist
 
     this._activeModel = this._options.model
+    this._selector = `[${attr('data-view')}="${this._options.name}"]`
     this._transition = new this._options.transition(this._element)
 
     if (!(this._transition instanceof Transition)) {
@@ -49,17 +50,8 @@ class View {
       name: null,
       persist: false,
       transition: Transition,
-      selector: null,
       model: null
     }
-  }
-
-  /**
-   * The selector to use to obtain a new node for this View from the loaded document
-   * @returns {string}
-   */
-  get selector () {
-    return this._options.selector || `[${attr('data-view')}="${this._options.name}"]`
   }
 
   /**
@@ -116,19 +108,18 @@ class View {
    * Set the model associated with this view
    * @param {Model} model
    */
-  setModel (model) {
+  async setModel (model) {
 
     if (this._activeModel && this._activeModel.url === model.url) {
       return
     }
 
-    const modelHasHint = model.includesView(this._options.name)
-    const docHasView = Promise.resolve(modelHasHint || model.querySelector(this.selector))
-    return docHasView
-      .then(() => this._activate(model), () => this._deactivate())
-      .catch(() => {
-        throw new Error(`Hint '${this._options.name}' was given, but not found in the loaded document.`)
-      })
+    try {
+      const includesView = await model.includesView(this._options.name)
+      includesView ? this._activate(model) : this._deactivate()
+    } catch(_) {
+      throw new Error(`Hint '${this._options.name}' was given, but not found in the loaded document.`)
+    }
 
   }
 
@@ -157,12 +148,13 @@ class View {
     }
     this.loading && this._transition.loading()
 
-    const node = await model.querySelector(this.selector)
-    const active = !!node.innerHTML.trim()
+    const doc = await model.doc
+    const node = doc.querySelector(this._selector)
+    const active = node && Boolean(node.innerHTML.trim())
 
     if (active) {
       this._dispatch('viewwillenter')
-      await this._transition.enter(node)
+      await this._transition.enter(node, doc)
       this._dispatch('viewdidenter')
       this._activeModel = model
     } else {
