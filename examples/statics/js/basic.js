@@ -665,6 +665,10 @@ function _continueIgnored(value) {
   }if (result && result.then) {
     return result.then(void 0, recover);
   }return result;
+}function _await(value, then, direct) {
+  if (direct) {
+    return then ? then(value) : value;
+  }value = Promise.resolve(value);return then ? value.then(then) : value;
 }var _async = function () {
   try {
     if (isNaN.apply(null, {})) {
@@ -688,11 +692,7 @@ function _continueIgnored(value) {
       }
     };
   };
-}();function _await(value, then, direct) {
-  if (direct) {
-    return then ? then(value) : value;
-  }value = Promise.resolve(value);return then ? value.then(then) : value;
-}var SUPPORTED = 'pushState' in history;
+}();var SUPPORTED = 'pushState' in history;
 var attr = function attr(key) {
   return config.attribute(key);
 };
@@ -876,9 +876,8 @@ var Controller = function () {
       var model = new Model({ url: url, hints: hints }, _this4._options.fetch);
 
       if (_this4._isCurrentUrl(model.url)) return;
-      return _await(_this4._updatePage(model), function () {
-        _this4._addHistoryEntry(model);
-      });
+      _this4._updatePage(model);
+      _this4._addHistoryEntry(model);
     })
 
     /**
@@ -910,9 +909,8 @@ var Controller = function () {
 
       var model = _this5._getViewByName(name).model;
       if (_this5._isCurrentUrl(model.url)) return;
-      return _await(_this5._updatePage(model), function () {
-        _this5._addHistoryEntry(model);
-      });
+      _this5._updatePage(model);
+      _this5._addHistoryEntry(model);
     })
 
     /**

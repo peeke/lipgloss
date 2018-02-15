@@ -168,7 +168,7 @@ class Controller {
     const model = new Model({url, hints}, this._options.fetch)
 
     if (this._isCurrentUrl(model.url)) return
-    await this._updatePage(model)
+    this._updatePage(model)
     this._addHistoryEntry(model)
 
   }
@@ -194,7 +194,7 @@ class Controller {
   async activateView (name) {
     const model = this._getViewByName(name).model
     if (this._isCurrentUrl(model.url)) return
-    await this._updatePage(model)
+    this._updatePage(model)
     this._addHistoryEntry(model)
   }
 
