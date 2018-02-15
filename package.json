@@ -40,6 +40,7 @@
   "devDependencies": {
     "babel-core": "^6.26.0",
     "babel-plugin-external-helpers": "^6.22.0",
+    "babel-plugin-transform-async-to-promises": "^0.5.1",
     "babel-preset-env": "^1.6.1",
     "cpx": "^1.5.0",
     "jsdoc": "^3.5.5",

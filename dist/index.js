@@ -4,35 +4,6 @@
 	(factory((global.lipgloss = {})));
 }(this, (function (exports) { 'use strict';
 
-var asyncToGenerator = function (fn) {
-  return function () {
-    var gen = fn.apply(this, arguments);
-    return new Promise(function (resolve, reject) {
-      function step(key, arg) {
-        try {
-          var info = gen[key](arg);
-          var value = info.value;
-        } catch (error) {
-          reject(error);
-          return;
-        }
-
-        if (info.done) {
-          resolve(value);
-        } else {
-          return Promise.resolve(value).then(function (value) {
-            step("next", value);
-          }, function (err) {
-            step("throw", err);
-          });
-        }
-      }
-
-      return step("next");
-    });
-  };
-};
-
 var classCallCheck = function (instance, Constructor) {
   if (!(instance instanceof Constructor)) {
     throw new TypeError("Cannot call a class as a function");
@@ -151,7 +122,30 @@ var Config = function () {
 
 var config = new Config();
 
-var attr$2 = function attr(key) {
+var _async$2 = function () {
+  try {
+    if (isNaN.apply(null, {})) {
+      return function (f) {
+        return function () {
+          try {
+            return Promise.resolve(f.apply(this, arguments));
+          } catch (e) {
+            return Promise.reject(e);
+          }
+        };
+      };
+    }
+  } catch (e) {}return function (f) {
+    // Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
+    return function () {
+      try {
+        return Promise.resolve(f.apply(this, Array.prototype.slice.call(arguments)));
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    };
+  };
+}();var attr$2 = function attr(key) {
   return config.attribute(key);
 };
 var reflow = function reflow(element) {
@@ -194,30 +188,13 @@ var Transition = function () {
 
   createClass(Transition, [{
     key: 'exit',
-    value: function () {
-      var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
-        return regeneratorRuntime.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                this._view.removeAttribute(attr$2('data-transition'));
-                reflow(this._view);
-                this._view.setAttribute(attr$2('data-transition'), 'out');
+    value: _async$2(function () {
+      var _this = this;
 
-              case 3:
-              case 'end':
-                return _context.stop();
-            }
-          }
-        }, _callee, this);
-      }));
-
-      function exit() {
-        return _ref.apply(this, arguments);
-      }
-
-      return exit;
-    }()
+      _this._view.removeAttribute(attr$2('data-transition'));
+      reflow(_this._view);
+      _this._view.setAttribute(attr$2('data-transition'), 'out');
+    })
 
     /**
      * @description Loading transition for the given view. This transition state will only occur
@@ -227,30 +204,13 @@ var Transition = function () {
 
   }, {
     key: 'loading',
-    value: function () {
-      var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2() {
-        return regeneratorRuntime.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                this._view.removeAttribute(attr$2('data-transition'));
-                reflow(this._view);
-                this._view.setAttribute(attr$2('data-transition'), 'loading');
+    value: _async$2(function () {
+      var _this2 = this;
 
-              case 3:
-              case 'end':
-                return _context2.stop();
-            }
-          }
-        }, _callee2, this);
-      }));
-
-      function loading() {
-        return _ref2.apply(this, arguments);
-      }
-
-      return loading;
-    }()
+      _this2._view.removeAttribute(attr$2('data-transition'));
+      reflow(_this2._view);
+      _this2._view.setAttribute(attr$2('data-transition'), 'loading');
+    })
 
     /**
      * @description Enter transition for the given view.
@@ -260,31 +220,14 @@ var Transition = function () {
 
   }, {
     key: 'enter',
-    value: function () {
-      var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(newNode, newDoc) {
-        return regeneratorRuntime.wrap(function _callee3$(_context3) {
-          while (1) {
-            switch (_context3.prev = _context3.next) {
-              case 0:
-                this.updateHtml(newNode);
-                this._view.removeAttribute(attr$2('data-transition'));
-                reflow(this._view);
-                this._view.setAttribute(attr$2('data-transition'), 'in');
+    value: _async$2(function (newNode, newDoc) {
+      var _this3 = this;
 
-              case 4:
-              case 'end':
-                return _context3.stop();
-            }
-          }
-        }, _callee3, this);
-      }));
-
-      function enter(_x, _x2) {
-        return _ref3.apply(this, arguments);
-      }
-
-      return enter;
-    }()
+      _this3.updateHtml(newNode);
+      _this3._view.removeAttribute(attr$2('data-transition'));
+      reflow(_this3._view);
+      _this3._view.setAttribute(attr$2('data-transition'), 'in');
+    })
 
     /**
      * Updates the view element with new HTML and dispatches the 'viewhtmlupdated' lifecycle event
@@ -313,7 +256,50 @@ var Transition = function () {
   return Transition;
 }();
 
-var unique = function unique(arr) {
+function _invoke(body, then) {
+  var result = body();if (result && result.then) {
+    return result.then(then);
+  }return then(result);
+}var _async$1 = function () {
+  try {
+    if (isNaN.apply(null, {})) {
+      return function (f) {
+        return function () {
+          try {
+            return Promise.resolve(f.apply(this, arguments));
+          } catch (e) {
+            return Promise.reject(e);
+          }
+        };
+      };
+    }
+  } catch (e) {}return function (f) {
+    // Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
+    return function () {
+      try {
+        return Promise.resolve(f.apply(this, Array.prototype.slice.call(arguments)));
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    };
+  };
+}();function _catch$1(body, recover) {
+  try {
+    var result = body();
+  } catch (e) {
+    try {
+      return recover(e);
+    } catch (e2) {
+      return Promise.reject(e2);
+    }
+  }if (result && result.then) {
+    return result.then(void 0, recover);
+  }return result;
+}function _await$1(value, then, direct) {
+  if (direct) {
+    return then ? then(value) : value;
+  }value = Promise.resolve(value);return then ? value.then(then) : value;
+}var unique = function unique(arr) {
   return Array.from(new Set(arr));
 };
 var attr$1 = function attr(key) {
@@ -372,51 +358,21 @@ var View = function () {
      * Set the model associated with this view
      * @param {Model} model
      */
-    value: function () {
-      var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(model) {
-        var includesView;
-        return regeneratorRuntime.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                if (!(this._activeModel && this._activeModel.url === model.url)) {
-                  _context.next = 2;
-                  break;
-                }
+    value: _async$1(function (model) {
+      var _this = this;
 
-                return _context.abrupt('return');
-
-              case 2:
-                _context.prev = 2;
-                _context.next = 5;
-                return model.includesView(this._options.name);
-
-              case 5:
-                includesView = _context.sent;
-
-                includesView ? this._activate(model) : this._deactivate();
-                _context.next = 12;
-                break;
-
-              case 9:
-                _context.prev = 9;
-                _context.t0 = _context['catch'](2);
-                throw new Error('Hint \'' + this._options.name + '\' was given, but not found in the loaded document.');
-
-              case 12:
-              case 'end':
-                return _context.stop();
-            }
-          }
-        }, _callee, this, [[2, 9]]);
-      }));
-
-      function setModel(_x2) {
-        return _ref.apply(this, arguments);
+      if (_this._activeModel && _this._activeModel.url === model.url) {
+        return;
       }
 
-      return setModel;
-    }()
+      return _catch$1(function () {
+        return _await$1(model.includesView(_this._options.name), function (includesView) {
+          includesView ? _this._activate(model) : _this._deactivate();
+        });
+      }, function (_) {
+        throw new Error('Hint \'' + _this._options.name + '\' was given, but not found in the loaded document.');
+      });
+    })
 
     /**
      * @returns {string} - The name of this view
@@ -432,81 +388,45 @@ var View = function () {
      * @returns {Promise.<void>} - A promise resolving when the activation of the new Model is complete
      * @private
      */
-    value: function () {
-      var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(model) {
-        var _this = this;
+    value: _async$1(function (model) {
+      var _this2 = this;
 
-        var doc, node, active;
-        return regeneratorRuntime.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
+      _this2.loading = true;
+      model.doc.then(function () {
+        _this2.loading = false;
+      });
 
-                this.loading = true;
-                model.doc.then(function () {
-                  _this.loading = false;
-                });
+      return _invoke(function () {
+        if (_this2.active) {
+          _this2._dispatch('viewwillexit');
+          return _await$1(_this2._transition.exit(), function () {
+            _this2._dispatch('viewdidexit');
+          });
+        }
+      }, function () {
+        _this2.loading && _this2._transition.loading();
 
-                if (!this.active) {
-                  _context2.next = 7;
-                  break;
-                }
+        return _await$1(model.doc, function (doc) {
+          var node = doc.querySelector(_this2._selector);
+          var active = node && Boolean(node.innerHTML.trim());
 
-                this._dispatch('viewwillexit');
-                _context2.next = 6;
-                return this._transition.exit();
-
-              case 6:
-                this._dispatch('viewdidexit');
-
-              case 7:
-                this.loading && this._transition.loading();
-
-                _context2.next = 10;
-                return model.doc;
-
-              case 10:
-                doc = _context2.sent;
-                node = doc.querySelector(this._selector);
-                active = node && Boolean(node.innerHTML.trim());
-
-                if (!active) {
-                  _context2.next = 21;
-                  break;
-                }
-
-                this._dispatch('viewwillenter');
-                _context2.next = 17;
-                return this._transition.enter(node, doc);
-
-              case 17:
-                this._dispatch('viewdidenter');
-                this._activeModel = model;
-                _context2.next = 22;
-                break;
-
-              case 21:
-                this._activeModel = null;
-
-              case 22:
-
-                this.active = active;
-                this._transition.done();
-
-              case 24:
-              case 'end':
-                return _context2.stop();
+          return _invoke(function () {
+            if (active) {
+              _this2._dispatch('viewwillenter');
+              return _await$1(_this2._transition.enter(node, doc), function () {
+                _this2._dispatch('viewdidenter');
+                _this2._activeModel = model;
+              });
+            } else {
+              _this2._activeModel = null;
             }
-          }
-        }, _callee2, this);
-      }));
-
-      function _activate(_x3) {
-        return _ref2.apply(this, arguments);
-      }
-
-      return _activate;
-    }()
+          }, function () {
+            _this2.active = active;
+            _this2._transition.done();
+          });
+        });
+      });
+    })
 
     /**
      * Deactivate the Model for this View.
@@ -515,54 +435,21 @@ var View = function () {
 
   }, {
     key: '_deactivate',
-    value: function () {
-      var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3() {
-        return regeneratorRuntime.wrap(function _callee3$(_context3) {
-          while (1) {
-            switch (_context3.prev = _context3.next) {
-              case 0:
-                if (this.active) {
-                  _context3.next = 2;
-                  break;
-                }
+    value: _async$1(function () {
+      var _this3 = this;
 
-                return _context3.abrupt('return');
+      if (!_this3.active) return;
+      if (_this3._persist) return;
 
-              case 2:
-                if (!this._persist) {
-                  _context3.next = 4;
-                  break;
-                }
+      _this3._dispatch('viewwillexit');
+      return _await$1(_this3._transition.exit(), function () {
+        _this3._dispatch('viewdidexit');
 
-                return _context3.abrupt('return');
-
-              case 4:
-
-                this._dispatch('viewwillexit');
-                _context3.next = 7;
-                return this._transition.exit();
-
-              case 7:
-                this._dispatch('viewdidexit');
-
-                this.active = false;
-                this._transition.done();
-                this._activeModel = null;
-
-              case 11:
-              case 'end':
-                return _context3.stop();
-            }
-          }
-        }, _callee3, this);
-      }));
-
-      function _deactivate() {
-        return _ref3.apply(this, arguments);
-      }
-
-      return _deactivate;
-    }()
+        _this3.active = false;
+        _this3._transition.done();
+        _this3._activeModel = null;
+      });
+    })
   }, {
     key: '_dispatch',
     value: function _dispatch(eventName) {
@@ -606,13 +493,13 @@ var View = function () {
      */
     ,
     set: function set$$1(bool) {
-      var _this2 = this;
+      var _this4 = this;
 
       this._isLoading = bool;
       var loadingViews = document.body.hasAttribute(attr$1('data-views-loading')) ? document.body.getAttribute(attr$1('data-views-loading')).split(' ') : [];
 
       var newLoadingViews = bool ? unique([].concat(toConsumableArray(loadingViews), [this._options.name])) : loadingViews.filter(function (name) {
-        return name !== _this2._options.name;
+        return name !== _this4._options.name;
       });
 
       document.body.setAttribute(attr$1('data-views-loading'), newLoadingViews.join(' '));
@@ -646,7 +533,34 @@ var View = function () {
   return View;
 }();
 
-var attr$3 = function attr(key) {
+var _async$3 = function () {
+  try {
+    if (isNaN.apply(null, {})) {
+      return function (f) {
+        return function () {
+          try {
+            return Promise.resolve(f.apply(this, arguments));
+          } catch (e) {
+            return Promise.reject(e);
+          }
+        };
+      };
+    }
+  } catch (e) {}return function (f) {
+    // Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
+    return function () {
+      try {
+        return Promise.resolve(f.apply(this, Array.prototype.slice.call(arguments)));
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    };
+  };
+}();function _await$2(value, then, direct) {
+  if (direct) {
+    return then ? then(value) : value;
+  }value = Promise.resolve(value);return then ? value.then(then) : value;
+}var attr$3 = function attr(key) {
   return config.attribute(key);
 };
 
@@ -667,8 +581,7 @@ var Model = function () {
   function Model(options, fetchOptions) {
     classCallCheck(this, Model);
 
-    this._request = new Request(options.url, fetchOptions);
-    this._hints = options.hints || [];
+    this._request = new Request(options.url, fetchOptions);this._hints = options.hints || [];
     this._doc = null;
   }
 
@@ -687,42 +600,14 @@ var Model = function () {
      * @param {string} name - A name of a view
      * @returns {boolean}
      */
-    value: function () {
-      var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(name) {
-        var doc;
-        return regeneratorRuntime.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                if (!this._hints.includes(name)) {
-                  _context.next = 2;
-                  break;
-                }
+    value: _async$3(function (name) {
+      var _this = this;
 
-                return _context.abrupt('return', true);
-
-              case 2:
-                _context.next = 4;
-                return this.doc;
-
-              case 4:
-                doc = _context.sent;
-                return _context.abrupt('return', Boolean(doc.querySelector('[' + attr$3('data-view') + '="' + name + '"]')));
-
-              case 6:
-              case 'end':
-                return _context.stop();
-            }
-          }
-        }, _callee, this);
-      }));
-
-      function includesView(_x) {
-        return _ref.apply(this, arguments);
-      }
-
-      return includesView;
-    }()
+      if (_this._hints.includes(name)) return true;
+      return _await$2(_this.doc, function (doc) {
+        return Boolean(doc.querySelector('[' + attr$3('data-view') + '="' + name + '"]'));
+      });
+    })
 
     /**
      * Get an object representation of the Model, which can be added to the history state. You can pass it to the
@@ -767,7 +652,50 @@ var Model = function () {
   return Model;
 }();
 
-var SUPPORTED = 'pushState' in history;
+function _continueIgnored(value) {
+  if (value && value.then) {
+    return value.then(_empty);
+  }
+}function _empty() {}function _catch(body, recover) {
+  try {
+    var result = body();
+  } catch (e) {
+    try {
+      return recover(e);
+    } catch (e2) {
+      return Promise.reject(e2);
+    }
+  }if (result && result.then) {
+    return result.then(void 0, recover);
+  }return result;
+}var _async = function () {
+  try {
+    if (isNaN.apply(null, {})) {
+      return function (f) {
+        return function () {
+          try {
+            return Promise.resolve(f.apply(this, arguments));
+          } catch (e) {
+            return Promise.reject(e);
+          }
+        };
+      };
+    }
+  } catch (e) {}return function (f) {
+    // Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
+    return function () {
+      try {
+        return Promise.resolve(f.apply(this, Array.prototype.slice.call(arguments)));
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    };
+  };
+}();function _await(value, then, direct) {
+  if (direct) {
+    return then ? then(value) : value;
+  }value = Promise.resolve(value);return then ? value.then(then) : value;
+}var SUPPORTED = 'pushState' in history;
 var attr = function attr(key) {
   return config.attribute(key);
 };
@@ -940,48 +868,21 @@ var Controller = function () {
 
   }, {
     key: '_onLinkClick',
-    value: function () {
-      var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(e) {
-        var url, viewLink, hints, model;
-        return regeneratorRuntime.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                e.preventDefault();
+    value: _async(function (e) {
+      var _this4 = this;
 
-                url = this._options.sanitizeUrl(e.currentTarget.href);
-                viewLink = e.currentTarget.getAttribute(attr('data-view-link'));
-                hints = viewLink ? viewLink.split(',') : this._options.defaultHints;
-                model = new Model({ url: url, hints: hints }, this._options.fetch);
+      e.preventDefault();
 
-                if (!this._isCurrentUrl(model.url)) {
-                  _context.next = 7;
-                  break;
-                }
+      var url = _this4._options.sanitizeUrl(e.currentTarget.href);
+      var viewLink = e.currentTarget.getAttribute(attr('data-view-link'));
+      var hints = viewLink ? viewLink.split(',') : _this4._options.defaultHints;
+      var model = new Model({ url: url, hints: hints }, _this4._options.fetch);
 
-                return _context.abrupt('return');
-
-              case 7:
-                _context.next = 9;
-                return this._updatePage(model);
-
-              case 9:
-                this._addHistoryEntry(model);
-
-              case 10:
-              case 'end':
-                return _context.stop();
-            }
-          }
-        }, _callee, this);
-      }));
-
-      function _onLinkClick(_x2) {
-        return _ref.apply(this, arguments);
-      }
-
-      return _onLinkClick;
-    }()
+      if (_this4._isCurrentUrl(model.url)) return;
+      return _await(_this4._updatePage(model), function () {
+        _this4._addHistoryEntry(model);
+      });
+    })
 
     /**
      * Handles a click on an element with a [data-activate-view="viewname"] attribute.
@@ -1007,43 +908,15 @@ var Controller = function () {
 
   }, {
     key: 'activateView',
-    value: function () {
-      var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(name) {
-        var model;
-        return regeneratorRuntime.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                model = this._getViewByName(name).model;
+    value: _async(function (name) {
+      var _this5 = this;
 
-                if (!this._isCurrentUrl(model.url)) {
-                  _context2.next = 3;
-                  break;
-                }
-
-                return _context2.abrupt('return');
-
-              case 3:
-                _context2.next = 5;
-                return this._updatePage(model);
-
-              case 5:
-                this._addHistoryEntry(model);
-
-              case 6:
-              case 'end':
-                return _context2.stop();
-            }
-          }
-        }, _callee2, this);
-      }));
-
-      function activateView(_x3) {
-        return _ref2.apply(this, arguments);
-      }
-
-      return activateView;
-    }()
+      var model = _this5._getViewByName(name).model;
+      if (_this5._isCurrentUrl(model.url)) return;
+      return _await(_this5._updatePage(model), function () {
+        _this5._addHistoryEntry(model);
+      });
+    })
 
     /**
      * Retreive a Model from a View
@@ -1083,59 +956,31 @@ var Controller = function () {
 
   }, {
     key: '_updatePage',
-    value: function () {
-      var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(model) {
-        var operations, done, doc;
-        return regeneratorRuntime.wrap(function _callee3$(_context3) {
-          while (1) {
-            switch (_context3.prev = _context3.next) {
-              case 0:
-                window.dispatchEvent(new CustomEvent('pagewillupdate'));
-                this._model = model;
-                _context3.prev = 2;
-                operations = this.views.map(function (view) {
-                  return view.setModel(model);
-                });
-                done = Promise.all(operations);
-                _context3.next = 7;
-                return model.doc;
+    value: _async(function (model) {
+      var _this6 = this;
 
-              case 7:
-                doc = _context3.sent;
+      window.dispatchEvent(new CustomEvent('pagewillupdate'));
+      _this6._model = model;
+      return _continueIgnored(_catch(function () {
 
-                this._throwOnUnknownViews(doc);
-                this._options.updateDocument(doc);
+        var operations = _this6.views.map(function (view) {
+          return view.setModel(model);
+        });
+        var done = Promise.all(operations);
 
-                _context3.next = 12;
-                return done;
+        return _await(model.doc, function (doc) {
+          _this6._throwOnUnknownViews(doc);
+          _this6._options.updateDocument(doc);
 
-              case 12:
-                window.dispatchEvent(new CustomEvent('pagedidupdate'));
-
-                _context3.next = 19;
-                break;
-
-              case 15:
-                _context3.prev = 15;
-                _context3.t0 = _context3['catch'](2);
-
-                console.error(_context3.t0);
-                window.location.href = model.url;
-
-              case 19:
-              case 'end':
-                return _context3.stop();
-            }
-          }
-        }, _callee3, this, [[2, 15]]);
+          return _await(done, function () {
+            window.dispatchEvent(new CustomEvent('pagedidupdate'));
+          });
+        });
+      }, function (err) {
+        console.error(err);
+        window.location.href = model.url;
       }));
-
-      function _updatePage(_x4) {
-        return _ref3.apply(this, arguments);
-      }
-
-      return _updatePage;
-    }()
+    })
 
     /**
      * Add an history entry
@@ -1170,10 +1015,10 @@ var Controller = function () {
      * @returns {View[]} - An array of View instances
      */
     get: function get$$1() {
-      var _this4 = this;
+      var _this7 = this;
 
       return Array.from(document.querySelectorAll('[' + attr('data-view') + ']')).map(function (element) {
-        return _this4._viewsMap.get(element);
+        return _this7._viewsMap.get(element);
       });
     }
   }], [{
