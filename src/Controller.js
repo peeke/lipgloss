@@ -167,7 +167,6 @@ class Controller {
     const hints = viewLink ? viewLink.split(',') : this._options.defaultHints
     const model = new Model({url, hints}, this._options.fetch)
 
-    if (this._isCurrentUrl(model.url)) return
     this._updatePage(model)
     this._addHistoryEntry(model)
 
@@ -193,7 +192,6 @@ class Controller {
    */
   async activateView (name) {
     const model = this._getViewByName(name).model
-    if (this._isCurrentUrl(model.url)) return
     this._updatePage(model)
     this._addHistoryEntry(model)
   }

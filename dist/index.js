@@ -361,7 +361,7 @@ var View = function () {
     value: _async$1(function (model) {
       var _this = this;
 
-      if (_this._activeModel && _this._activeModel.url === model.url) {
+      if (_this._activeModel && _this._activeModel === model) {
         return;
       }
 
@@ -878,7 +878,6 @@ var Controller = function () {
       var hints = viewLink ? viewLink.split(',') : _this4._options.defaultHints;
       var model = new Model({ url: url, hints: hints }, _this4._options.fetch);
 
-      if (_this4._isCurrentUrl(model.url)) return;
       _this4._updatePage(model);
       _this4._addHistoryEntry(model);
     })
@@ -911,7 +910,6 @@ var Controller = function () {
       var _this5 = this;
 
       var model = _this5._getViewByName(name).model;
-      if (_this5._isCurrentUrl(model.url)) return;
       _this5._updatePage(model);
       _this5._addHistoryEntry(model);
     })

@@ -2,7 +2,7 @@ import config from './Config'
 
 const attr = key => config.attribute(key)
 const reflow = element => element.offsetHeight
-const eventOptions = { bubbles: true, cancelable: true }
+const eventOptions = {bubbles: true, cancelable: true}
 
 /**
  * @class Transition
@@ -65,7 +65,7 @@ class Transition {
    * Updates the view element with new HTML and dispatches the 'viewhtmlupdated' lifecycle event
    * @param {String} newNode - The new views node
    */
-  updateHtml(newNode) {
+  updateHtml (newNode) {
     this._view.innerHTML = newNode.innerHTML
     const event = new CustomEvent('viewhtmlupdated', eventOptions)
     this._view.dispatchEvent(event)
@@ -74,7 +74,7 @@ class Transition {
   /**
    * Cleans up after transitions have completed
    */
-  done() {
+  done () {
     this._view.removeAttribute(attr('data-transition'))
     reflow(this._view)
   }

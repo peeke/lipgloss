@@ -110,14 +110,14 @@ class View {
    */
   async setModel (model) {
 
-    if (this._activeModel && this._activeModel.url === model.url) {
+    if (this._activeModel && this._activeModel === model) {
       return
     }
 
     try {
       const includesView = await model.includesView(this._options.name)
       includesView ? this._activate(model) : this._deactivate()
-    } catch(_) {
+    } catch (_) {
       throw new Error(`Hint '${this._options.name}' was given, but not found in the loaded document.`)
     }
 

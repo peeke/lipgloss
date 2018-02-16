@@ -81,12 +81,12 @@ a {
     animation-direction: reverse; }
   .lightbox .lightbox-box {
     position: fixed;
-    top: 5vh;
-    right: 5vw;
-    bottom: 5vh;
-    left: 5vw;
-    width: 90vw;
-    height: 90vh;
+    top: 7.5vh;
+    right: 7.5vw;
+    bottom: 7.5vh;
+    left: 7.5vw;
+    width: 85vw;
+    height: 85vh;
     padding: 5vh 5vw;
     overflow-y: auto;
     background-color: white;
