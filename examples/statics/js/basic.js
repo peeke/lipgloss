@@ -76,52 +76,59 @@ var toConsumableArray = function (arr) {
 };
 
 /**
- * @class Config
- * @classdesc Configuration class for Lipgloss
+ * @class Attributes
+ * @classdesc Attribute configuration class for Lipgloss
  */
-var Config = function () {
+var Attributes = function () {
 
   /**
    * Unless overwritten, the default attributes are used
    */
-  function Config() {
-    classCallCheck(this, Config);
+  function Attributes() {
+    classCallCheck(this, Attributes);
 
-    this._overrides = {};
+    this._attributes = {
+      view: 'data-view',
+      viewLink: 'data-view-link',
+      viewActive: 'data-view-active',
+      viewsLoading: 'data-views-loading',
+      activateView: 'data-activate-view',
+      persistView: 'data-persist-view',
+      transition: 'data-transition'
+    };
   }
 
   /**
-   * Overwrite the default attributes
-   * @param {object} attributes - Object with the attributes you want to overwrite. The values of the object are the new attribute names.
+   * Returns the dictionary with attributes
    */
 
 
-  createClass(Config, [{
-    key: "assign",
-    value: function assign(attributes) {
-      this._overrides = Object.assign(this._overrides, attributes);
-    }
+  createClass(Attributes, [{
+    key: 'assign',
+
 
     /**
-     * Get the attribute name for a given normalized attribute name
-     * @param {string} attribute - The normalized attribute name
-     * @returns {string} - The configured attribute name
+     * Overwrite the default attributes
+     * @param {object} attributes - Object with the attributes you want to overwrite. The values of the object are the new attribute names.
      */
-
+    value: function assign(attributes) {
+      this._attributes = Object.assign(this._attributes, attributes);
+    }
   }, {
-    key: "attribute",
-    value: function attribute(_attribute) {
-      return this._overrides[_attribute] || _attribute;
+    key: 'dict',
+    get: function get$$1() {
+      return this._attributes;
     }
   }]);
-  return Config;
+  return Attributes;
 }();
 
-var config = new Config();
+var attributes = new Attributes();
 
 var _async$2 = function () {
   try {
     if (isNaN.apply(null, {})) {
+
       return function (f) {
         return function () {
           try {
@@ -142,29 +149,24 @@ var _async$2 = function () {
       }
     };
   };
-}();var attr$2 = function attr(key) {
-  return config.attribute(key);
-};
-var reflow = function reflow(element) {
+}();var reflow = function reflow(element) {
   return element.offsetHeight;
 };
-var eventOptions$1 = { bubbles: true, cancelable: true
-
-  /**
-   * @class Transition
-   * @classdesc Basic Transition class. All transitions you create should have this class as
-   * (grand)parent. When extending Transition, as a rule of thumb it's good to call this the
-   * super functions before your own functionality. E.g.: Sometimes you may want to do some
-   * preperation work, in which it is just fine to do this before you call super.exit()
-   *
-   * If you extend Transition, but choose to implement your own enter method, you have to call
-   * this.updateHtml(newNode) to update the HTML in order to preserve the lifecycle events.
-   * @example <caption>Extending Transition</caption>
-   * async exit() {
-   *   super.exit()
-   *   // Your code
-   * }
-   */
+var eventOptions$1 = { bubbles: true, cancelable: true /**
+                                                      * @class Transition
+                                                      * @classdesc Basic Transition class. All transitions you create should have this class as
+                                                      * (grand)parent. When extending Transition, as a rule of thumb it's good to call this the
+                                                      * super functions before your own functionality. E.g.: Sometimes you may want to do some
+                                                      * preperation work, in which it is just fine to do this before you call super.exit()
+                                                      *
+                                                      * If you extend Transition, but choose to implement your own enter method, you have to call
+                                                      * this.updateHtml(newNode) to update the HTML in order to preserve the lifecycle events.
+                                                      * @example <caption>Extending Transition</caption>
+                                                      * async exit() {
+                                                      *   super.exit()
+                                                      *   // Your code
+                                                      * }
+                                                      */
 };
 var Transition = function () {
 
@@ -188,9 +190,9 @@ var Transition = function () {
     value: _async$2(function () {
       var _this = this;
 
-      _this._view.removeAttribute(attr$2('data-transition'));
+      _this._view.removeAttribute(attributes.dict.transition);
       reflow(_this._view);
-      _this._view.setAttribute(attr$2('data-transition'), 'out');
+      _this._view.setAttribute(attributes.dict.transition, 'out');
     })
 
     /**
@@ -204,9 +206,9 @@ var Transition = function () {
     value: _async$2(function () {
       var _this2 = this;
 
-      _this2._view.removeAttribute(attr$2('data-transition'));
+      _this2._view.removeAttribute(attributes.dict.transition);
       reflow(_this2._view);
-      _this2._view.setAttribute(attr$2('data-transition'), 'loading');
+      _this2._view.setAttribute(attributes.dict.transition, 'loading');
     })
 
     /**
@@ -221,9 +223,9 @@ var Transition = function () {
       var _this3 = this;
 
       _this3.updateHtml(newNode);
-      _this3._view.removeAttribute(attr$2('data-transition'));
+      _this3._view.removeAttribute(attributes.dict.transition);
       reflow(_this3._view);
-      _this3._view.setAttribute(attr$2('data-transition'), 'in');
+      _this3._view.setAttribute(attributes.dict.transition, 'in');
     })
 
     /**
@@ -234,9 +236,9 @@ var Transition = function () {
   }, {
     key: 'updateHtml',
     value: function updateHtml(newNode) {
+      this._view.dispatchEvent(new CustomEvent('viewhtmlwillupdate', eventOptions$1));
       this._view.innerHTML = newNode.innerHTML;
-      var event = new CustomEvent('viewhtmlupdated', eventOptions$1);
-      this._view.dispatchEvent(event);
+      this._view.dispatchEvent(new CustomEvent('viewhtmldidupdate', eventOptions$1));
     }
 
     /**
@@ -246,7 +248,7 @@ var Transition = function () {
   }, {
     key: 'done',
     value: function done() {
-      this._view.removeAttribute(attr$2('data-transition'));
+      this._view.removeAttribute(attributes.dict.transition);
       reflow(this._view);
     }
   }]);
@@ -299,9 +301,6 @@ function _invoke(body, then) {
 }var unique = function unique(arr) {
   return Array.from(new Set(arr));
 };
-var attr$1 = function attr(key) {
-  return config.attribute(key);
-};
 var eventOptions = { bubbles: true, cancelable: true
 
   /**
@@ -330,10 +329,10 @@ var View = function () {
 
     this.active = !!this._element.innerHTML.trim();
 
-    this._persist = typeof this._options.persist === 'undefined' ? this._element.hasAttribute(attr$1('data-persist-view')) : this._options.persist;
+    this._persist = typeof this._options.persist === 'undefined' ? this._element.hasAttribute(attributes.dict.persistView) : this._options.persist;
 
     this._activeModel = this._options.model;
-    this._selector = '[' + attr$1('data-view') + '="' + this._options.name + '"]';
+    this._selector = '[' + attributes.dict.view + '="' + this._options.name + '"]';
     this._transition = new this._options.transition(this._element);
 
     if (!(this._transition instanceof Transition)) {
@@ -471,7 +470,7 @@ var View = function () {
     ,
     set: function set$$1(bool) {
       this._active = bool;
-      this._element.setAttribute(attr$1('data-view-active'), bool);
+      this._element.setAttribute(attributes.dict.viewActive, bool);
     }
 
     /**
@@ -493,13 +492,13 @@ var View = function () {
       var _this4 = this;
 
       this._isLoading = bool;
-      var loadingViews = document.body.hasAttribute(attr$1('data-views-loading')) ? document.body.getAttribute(attr$1('data-views-loading')).split(' ') : [];
+      var loadingViews = document.body.hasAttribute(attributes.dict.viewsLoading) ? document.body.getAttribute(attributes.dict.viewsLoading).split(' ') : [];
 
       var newLoadingViews = bool ? unique([].concat(toConsumableArray(loadingViews), [this._options.name])) : loadingViews.filter(function (name) {
         return name !== _this4._options.name;
       });
 
-      document.body.setAttribute(attr$1('data-views-loading'), newLoadingViews.join(' '));
+      document.body.setAttribute(attributes.dict.viewsLoading, newLoadingViews.join(' '));
     }
 
     /**
@@ -557,16 +556,7 @@ var _async$3 = function () {
   if (direct) {
     return then ? then(value) : value;
   }value = Promise.resolve(value);return then ? value.then(then) : value;
-}var attr$3 = function attr(key) {
-  return config.attribute(key);
-};
-
-/**
- * @class Model
- * @classdesc The Model contains all the data needed by a View to update.
- */
-
-var Model = function () {
+}var Model = function () {
 
   /**
    * Initialize a new Model
@@ -578,7 +568,8 @@ var Model = function () {
   function Model(options, fetchOptions) {
     classCallCheck(this, Model);
 
-    this._request = new Request(options.url, fetchOptions);this._hints = options.hints || [];
+    this._request = new Request(options.url, fetchOptions);
+    this._hints = options.hints || [];
     this._doc = null;
   }
 
@@ -602,7 +593,7 @@ var Model = function () {
 
       if (_this._hints.includes(name)) return true;
       return _await$2(_this.doc, function (doc) {
-        return Boolean(doc.querySelector('[' + attr$3('data-view') + '="' + name + '"]'));
+        return Boolean(doc.querySelector('[' + attributes.dict.view + '="' + name + '"]'));
       });
     })
 
@@ -693,9 +684,6 @@ function _continueIgnored(value) {
     };
   };
 }();var SUPPORTED = 'pushState' in history;
-var attr = function attr(key) {
-  return config.attribute(key);
-};
 
 /**
  * @class Controller
@@ -733,7 +721,7 @@ var Controller = function () {
       this._options = Object.assign(Controller.options, options);
       this._viewsMap = new WeakMap();
 
-      config.assign(this._options.attributes);
+      attributes.assign(this._options.attributes);
 
       var url = this._options.sanitizeUrl(window.location.href);
       this._model = new Model({ url: url, hints: this._options.defaultHints }, this._options.fetch);
@@ -782,17 +770,17 @@ var Controller = function () {
     value: function initializeContext(context) {
       var _this2 = this;
 
-      Array.from(context.querySelectorAll('[' + attr('data-view') + ']')).filter(function (element) {
+      Array.from(context.querySelectorAll('[' + attributes.dict.view + ']')).filter(function (element) {
         return !_this2._viewsMap.has(element);
       }).forEach(function (element) {
         return _this2._viewsMap.set(element, _this2._buildView(element, _this2._model));
       });
 
-      Array.from(context.querySelectorAll('[href][' + attr('data-view-link') + ']')).forEach(function (link) {
+      Array.from(context.querySelectorAll('[href][' + attributes.dict.viewLink + ']')).forEach(function (link) {
         return link.addEventListener('click', _this2._onLinkClick);
       });
 
-      Array.from(context.querySelectorAll('[' + attr('data-activate-view') + ']')).forEach(function (link) {
+      Array.from(context.querySelectorAll('[' + attributes.dict.activateView + ']')).forEach(function (link) {
         return link.addEventListener('click', _this2._onActivateViewClick);
       });
     }
@@ -808,8 +796,8 @@ var Controller = function () {
   }, {
     key: '_buildView',
     value: function _buildView(element, model) {
-      var name = element.getAttribute(attr('data-view'));
-      var persist = element.hasAttribute(attr('data-persist-view'));
+      var name = element.getAttribute(attributes.dict.view);
+      var persist = element.hasAttribute(attributes.dict.persistView);
       var transition = this._options.transitions[name] || Transition;
       return new View(element, { name: name, transition: transition, persist: persist, model: model });
     }
@@ -828,11 +816,11 @@ var Controller = function () {
       var _this3 = this;
 
       var message = function message(name) {
-        return 'Not able to determine where [' + attr('data-view') + '=\'' + name + '\'] should be inserted.';
+        return 'Not able to determine where [' + attributes.dict.view + '=\'' + name + '\'] should be inserted.';
       };
 
-      Array.from(doc.querySelectorAll('[' + attr('data-view') + ']')).map(function (viewElement) {
-        return viewElement.getAttribute(attr('data-view'));
+      Array.from(doc.querySelectorAll('[' + attributes.dict.view + ']')).map(function (viewElement) {
+        return viewElement.getAttribute(attributes.dict.view);
       }).filter(function (name) {
         return !_this3.views.some(function (view) {
           return view.name === name;
@@ -871,7 +859,7 @@ var Controller = function () {
       e.preventDefault();
 
       var url = _this4._options.sanitizeUrl(e.currentTarget.href);
-      var viewLink = e.currentTarget.getAttribute(attr('data-view-link'));
+      var viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink);
       var hints = viewLink ? viewLink.split(',') : _this4._options.defaultHints;
       var model = new Model({ url: url, hints: hints }, _this4._options.fetch);
 
@@ -891,7 +879,7 @@ var Controller = function () {
     key: '_onActivateViewClick',
     value: function _onActivateViewClick(e) {
       e.preventDefault();
-      var name = e.currentTarget.getAttribute(attr('data-activate-view'));
+      var name = e.currentTarget.getAttribute(attributes.dict.activateView);
       this.activateView(name);
     }
 
@@ -921,7 +909,7 @@ var Controller = function () {
   }, {
     key: '_getViewByName',
     value: function _getViewByName(name) {
-      var element = document.querySelector('[' + attr('data-view') + '="' + name + '"]');
+      var element = document.querySelector('[' + attributes.dict.view + '="' + name + '"]');
       return this._viewsMap.get(element);
     }
 
@@ -1010,7 +998,7 @@ var Controller = function () {
     get: function get$$1() {
       var _this7 = this;
 
-      return Array.from(document.querySelectorAll('[' + attr('data-view') + ']')).map(function (element) {
+      return Array.from(document.querySelectorAll('[' + attributes.dict.view + ']')).map(function (element) {
         return _this7._viewsMap.get(element);
       });
     }

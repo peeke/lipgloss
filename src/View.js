@@ -1,8 +1,7 @@
 import Transition from './Transition'
-import config from './Config'
+import attributes from './Attributes'
 
 const unique = arr => Array.from(new Set(arr))
-const attr = key => config.attribute(key)
 const eventOptions = {bubbles: true, cancelable: true}
 
 /**
@@ -28,11 +27,11 @@ class View {
     this.active = !!this._element.innerHTML.trim()
 
     this._persist = typeof this._options.persist === 'undefined'
-      ? this._element.hasAttribute(attr('data-persist-view'))
+      ? this._element.hasAttribute(attributes.dict.persistView)
       : this._options.persist
 
     this._activeModel = this._options.model
-    this._selector = `[${attr('data-view')}="${this._options.name}"]`
+    this._selector = `[${attributes.dict.view}="${this._options.name}"]`
     this._transition = new this._options.transition(this._element)
 
     if (!(this._transition instanceof Transition)) {
@@ -68,7 +67,7 @@ class View {
    */
   set active (bool) {
     this._active = bool
-    this._element.setAttribute(attr('data-view-active'), bool)
+    this._element.setAttribute(attributes.dict.viewActive, bool)
   }
 
   /**
@@ -85,15 +84,15 @@ class View {
   set loading (bool) {
 
     this._isLoading = bool
-    const loadingViews = document.body.hasAttribute(attr('data-views-loading'))
-      ? document.body.getAttribute(attr('data-views-loading')).split(' ')
+    const loadingViews = document.body.hasAttribute(attributes.dict.viewsLoading)
+      ? document.body.getAttribute(attributes.dict.viewsLoading).split(' ')
       : []
 
     const newLoadingViews = bool
       ? unique([...loadingViews, this._options.name])
       : loadingViews.filter(name => name !== this._options.name)
 
-    document.body.setAttribute(attr('data-views-loading'), newLoadingViews.join(' '))
+    document.body.setAttribute(attributes.dict.viewsLoading, newLoadingViews.join(' '))
 
   }
 

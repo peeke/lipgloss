@@ -1,6 +1,4 @@
-import config from './Config'
-
-const attr = key => config.attribute(key)
+import attributes from './Attributes'
 
 /**
  * @class Model
@@ -51,7 +49,7 @@ class Model {
   async includesView (name) {
     if (this._hints.includes(name)) return true
     const doc = await this.doc
-    return Boolean(doc.querySelector(`[${attr('data-view')}="${name}"]`))
+    return Boolean(doc.querySelector(`[${attributes.dict.view}="${name}"]`))
   }
 
   /**

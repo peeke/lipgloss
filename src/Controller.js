@@ -1,10 +1,9 @@
 import View from './View'
 import Model from './Model'
 import Transition from './Transition'
-import config from './Config'
+import attributes from './Attributes'
 
 const SUPPORTED = 'pushState' in history
-const attr = key => config.attribute(key)
 
 /**
  * @class Controller
@@ -32,7 +31,7 @@ class Controller {
     this._options = Object.assign(Controller.options, options)
     this._viewsMap = new WeakMap()
 
-    config.assign(this._options.attributes)
+    attributes.assign(this._options.attributes)
 
     const url = this._options.sanitizeUrl(window.location.href)
     this._model = new Model({url, hints: this._options.defaultHints}, this._options.fetch)
@@ -72,7 +71,7 @@ class Controller {
    */
   get views () {
     return Array
-      .from(document.querySelectorAll(`[${attr('data-view')}]`))
+      .from(document.querySelectorAll(`[${attributes.dict.view}]`))
       .map(element => this._viewsMap.get(element))
   }
 
@@ -96,16 +95,16 @@ class Controller {
   initializeContext (context) {
 
     Array
-      .from(context.querySelectorAll(`[${attr('data-view')}]`))
+      .from(context.querySelectorAll(`[${attributes.dict.view}]`))
       .filter(element => !this._viewsMap.has(element))
       .forEach(element => this._viewsMap.set(element, this._buildView(element, this._model)))
 
     Array
-      .from(context.querySelectorAll(`[href][${attr('data-view-link')}]`))
+      .from(context.querySelectorAll(`[href][${attributes.dict.viewLink}]`))
       .forEach(link => link.addEventListener('click', this._onLinkClick))
 
     Array
-      .from(context.querySelectorAll(`[${attr('data-activate-view')}]`))
+      .from(context.querySelectorAll(`[${attributes.dict.activateView}]`))
       .forEach(link => link.addEventListener('click', this._onActivateViewClick))
 
   }
@@ -118,8 +117,8 @@ class Controller {
    * @private
    */
   _buildView (element, model) {
-    const name = element.getAttribute(attr('data-view'))
-    const persist = element.hasAttribute(attr('data-persist-view'))
+    const name = element.getAttribute(attributes.dict.view)
+    const persist = element.hasAttribute(attributes.dict.persistView)
     const transition = this._options.transitions[name] || Transition
     return new View(element, {name, transition, persist, model})
   }
@@ -132,11 +131,11 @@ class Controller {
    * @private
    */
   _throwOnUnknownViews (doc) {
-    const message = name => `Not able to determine where [${attr('data-view')}='${name}'] should be inserted.`
+    const message = name => `Not able to determine where [${attributes.dict.view}='${name}'] should be inserted.`
 
     Array
-      .from(doc.querySelectorAll(`[${attr('data-view')}]`))
-      .map(viewElement => viewElement.getAttribute(attr('data-view')))
+      .from(doc.querySelectorAll(`[${attributes.dict.view}]`))
+      .map(viewElement => viewElement.getAttribute(attributes.dict.view))
       .filter(name => !this.views.some(view => view.name === name))
       .forEach(name => { throw new Error(message(name)) })
 
@@ -163,7 +162,7 @@ class Controller {
     e.preventDefault()
 
     const url = this._options.sanitizeUrl(e.currentTarget.href)
-    const viewLink = e.currentTarget.getAttribute(attr('data-view-link'))
+    const viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink)
     const hints = viewLink ? viewLink.split(',') : this._options.defaultHints
     const model = new Model({url, hints}, this._options.fetch)
 
@@ -181,7 +180,7 @@ class Controller {
    */
   _onActivateViewClick (e) {
     e.preventDefault()
-    const name = e.currentTarget.getAttribute(attr('data-activate-view'))
+    const name = e.currentTarget.getAttribute(attributes.dict.activateView)
     this.activateView(name)
   }
 
@@ -203,7 +202,7 @@ class Controller {
    * @private
    */
   _getViewByName (name) {
-    const element = document.querySelector(`[${attr('data-view')}="${name}"]`)
+    const element = document.querySelector(`[${attributes.dict.view}="${name}"]`)
     return this._viewsMap.get(element)
   }
 

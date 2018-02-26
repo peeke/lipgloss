@@ -1,6 +1,5 @@
-import config from './Config'
+import attributes from './Attributes'
 
-const attr = key => config.attribute(key)
 const reflow = element => element.offsetHeight
 const eventOptions = {bubbles: true, cancelable: true}
 
@@ -33,9 +32,9 @@ class Transition {
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
   async exit () {
-    this._view.removeAttribute(attr('data-transition'))
+    this._view.removeAttribute(attributes.dict.transition)
     reflow(this._view)
-    this._view.setAttribute(attr('data-transition'), 'out')
+    this._view.setAttribute(attributes.dict.transition, 'out')
   }
 
   /**
@@ -44,9 +43,9 @@ class Transition {
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'loading'
    */
   async loading () {
-    this._view.removeAttribute(attr('data-transition'))
+    this._view.removeAttribute(attributes.dict.transition)
     reflow(this._view)
-    this._view.setAttribute(attr('data-transition'), 'loading')
+    this._view.setAttribute(attributes.dict.transition, 'loading')
   }
 
   /**
@@ -56,9 +55,9 @@ class Transition {
    */
   async enter (newNode, newDoc) {
     this.updateHtml(newNode)
-    this._view.removeAttribute(attr('data-transition'))
+    this._view.removeAttribute(attributes.dict.transition)
     reflow(this._view)
-    this._view.setAttribute(attr('data-transition'), 'in')
+    this._view.setAttribute(attributes.dict.transition, 'in')
   }
 
   /**
@@ -75,7 +74,7 @@ class Transition {
    * Cleans up after transitions have completed
    */
   done () {
-    this._view.removeAttribute(attr('data-transition'))
+    this._view.removeAttribute(attributes.dict.transition)
     reflow(this._view)
   }
 
