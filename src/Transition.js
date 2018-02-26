@@ -66,9 +66,9 @@ class Transition {
    * @param {String} newNode - The new views node
    */
   updateHtml (newNode) {
+    this._view.dispatchEvent(new CustomEvent('viewhtmlwillupdate', eventOptions))
     this._view.innerHTML = newNode.innerHTML
-    const event = new CustomEvent('viewhtmlupdated', eventOptions)
-    this._view.dispatchEvent(event)
+    this._view.dispatchEvent(new CustomEvent('viewhtmldidupdate', eventOptions))
   }
 
   /**

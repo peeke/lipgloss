@@ -237,9 +237,9 @@ var Transition = function () {
   }, {
     key: 'updateHtml',
     value: function updateHtml(newNode) {
+      this._view.dispatchEvent(new CustomEvent('viewhtmlwillupdate', eventOptions$1));
       this._view.innerHTML = newNode.innerHTML;
-      var event = new CustomEvent('viewhtmlupdated', eventOptions$1);
-      this._view.dispatchEvent(event);
+      this._view.dispatchEvent(new CustomEvent('viewhtmldidupdate', eventOptions$1));
     }
 
     /**
