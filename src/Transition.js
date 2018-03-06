@@ -25,6 +25,17 @@ class Transition {
    */
   constructor (view) {
     this._view = view
+    this.didExit = this.didEnter = this.didComplete = Promise.resolve()
+  }
+
+  get view() {
+    return this._view
+  }
+
+  start() {
+    this.didExit = new Promise(resolve => (this.exitDone = resolve))
+    this.didEnter = new Promise(resolve => (this.enterDone = resolve))
+    this.didComplete = Promise.all([this.didExit, this.didEnter])
   }
 
   /**
@@ -74,6 +85,8 @@ class Transition {
    * Cleans up after transitions have completed
    */
   done () {
+    this.exitDone()
+    this.enterDone()
     this._view.removeAttribute(attributes.dict.transition)
     reflow(this._view)
   }

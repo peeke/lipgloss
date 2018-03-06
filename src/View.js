@@ -105,21 +105,36 @@ class View {
 
   /**
    * Set the model associated with this view
+   * Has three flows:
+   *   1. The same Model is already set, do nothing
+   *   2. The view is included in the Model, activate
+   *   3. The view is not included in the Model, deactivate
    * @param {Model} model
    */
-  async setModel (model) {
+  set model(model) {
+    this._transition.start()
 
-    if (this._activeModel && this._activeModel === model) {
+    const isAlreadySet = this._activeModel && this._activeModel === model
+    if (isAlreadySet) {
+      this._transition.done()
       return
     }
 
-    try {
-      const includesView = await model.includesView(this._options.name)
-      includesView ? this._activate(model) : this._deactivate()
-    } catch (_) {
-      throw new Error(`Hint '${this._options.name}' was given, but not found in the loaded document.`)
-    }
-
+    model
+      .includesView(this._options.name)
+      .then(
+        includesView =>
+          includesView ? this._activate(model) : this._deactivate()
+      )
+      .then(() => this._transition.done())
+      .catch(err => {
+        console.error(err)
+        throw new Error(
+          `Hint '${
+            this._options.name
+          }' was given, but not found in the loaded document.`
+        )
+      })
   }
 
   /**
@@ -127,6 +142,10 @@ class View {
    */
   get name () {
     return this._options.name
+  }
+
+  get transition() {
+    return this._transition
   }
 
   /**
@@ -145,6 +164,7 @@ class View {
       await this._transition.exit()
       this._dispatch('viewdidexit')
     }
+    this._transition.exitDone()
     this.loading && this._transition.loading()
 
     const doc = await model.doc
@@ -154,6 +174,7 @@ class View {
     if (active) {
       this._dispatch('viewwillenter')
       await this._transition.enter(node, doc)
+      this._transition.enterDone()
       this._dispatch('viewdidenter')
       this._activeModel = model
     } else {
@@ -161,7 +182,6 @@ class View {
     }
 
     this.active = active
-    this._transition.done()
 
   }
 
@@ -176,10 +196,10 @@ class View {
 
     this._dispatch('viewwillexit')
     await this._transition.exit()
+    this._transition.exitDone()
     this._dispatch('viewdidexit')
 
     this.active = false
-    this._transition.done()
     this._activeModel = null
 
   }

@@ -75,6 +75,18 @@ class Controller {
       .map(element => this._viewsMap.get(element))
   }
 
+  didExit(name) {
+    return this._getViewByName(name).transition.didExit
+  }
+
+  didEnter(name) {
+    return this._getViewByName(name).transition.didEnter
+  }
+
+  didComplete(name) {
+    return this._getViewByName(name).transition.didComplete
+  }
+
   /**
    * Bind global events
    * @private
@@ -187,9 +199,8 @@ class Controller {
   /**
    * Activate a view by name
    * @param {string} name - Name of the view to activate
-   * @returns {Promise.<void>}
    */
-  async activateView (name) {
+  activateView(name) {
     const model = this._getViewByName(name).model
     this._updatePage(model)
     this._addHistoryEntry(model)
@@ -228,9 +239,14 @@ class Controller {
     window.dispatchEvent(new CustomEvent('pagewillupdate'))
     this._model = model
     try {
+      const views = this.views
+      const transitions = views.forEach(view => (view.model = model))
 
-      const operations = this.views.map(view => view.setModel(model))
-      const done = Promise.all(operations)
+      const done = Promise.all(
+        views
+          .map(view => view.transition)
+          .map(transition => transition.didComplete)
+      )
 
       const doc = await model.doc
       this._throwOnUnknownViews(doc)
