@@ -10,7 +10,6 @@ const SUPPORTED = 'pushState' in history
  * @classdesc Handles updating the views on the page with new models
  */
 class Controller {
-
   /**
    * Controller is a singleton which should be initialized once trough the init() method to set the options
    * @param {object} options - Options
@@ -19,8 +18,7 @@ class Controller {
    * @param {function(string)} options.sanitizeUrl - A function to transform the url, before it's compared and pushed to the history
    * @param {object} options.fetch - The options to pass into a fetch request
    */
-  init (options = {}) {
-
+  init(options = {}) {
     if (!SUPPORTED) return
 
     if (this._initialized) {
@@ -34,25 +32,29 @@ class Controller {
     attributes.assign(this._options.attributes)
 
     const url = this._options.sanitizeUrl(window.location.href)
-    this._model = new Model({url, hints: this._options.defaultHints}, this._options.fetch)
+    this._model = new Model(
+      { url, hints: this._options.defaultHints },
+      this._options.fetch
+    )
 
     this._addHistoryEntry(this._model, true)
     this._bindEvents()
 
     this.initializeContext(document)
-
   }
 
   /**
    * Default init options
    * @type {object}
    */
-  static get options () {
+  static get options() {
     return {
       defaultHints: [],
       transitions: {},
       sanitizeUrl: url => url,
-      updateDocument: doc => { document.title = doc.title },
+      updateDocument: doc => {
+        document.title = doc.title
+      },
       attributes: {},
       fetch: {
         credentials: 'same-origin',
@@ -69,10 +71,10 @@ class Controller {
    * Return all the views contained in the current document
    * @returns {View[]} - An array of View instances
    */
-  get views () {
-    return Array
-      .from(document.querySelectorAll(`[${attributes.dict.view}]`))
-      .map(element => this._viewsMap.get(element))
+  get views() {
+    return Array.from(
+      document.querySelectorAll(`[${attributes.dict.view}]`)
+    ).map(element => this._viewsMap.get(element))
   }
 
   didExit(name) {
@@ -91,10 +93,13 @@ class Controller {
    * Bind global events
    * @private
    */
-  _bindEvents () {
+  _bindEvents() {
     this._onLinkClick = this._onLinkClick.bind(this)
+    this._onDeactivateViewClick = this._onDeactivateViewClick.bind(this)
     this._onActivateViewClick = this._onActivateViewClick.bind(this)
-    document.addEventListener('viewdidenter', e => this.initializeContext(e.target))
+    document.addEventListener('viewdidenter', e =>
+      this.initializeContext(e.target)
+    )
     window.addEventListener('popstate', e => this._onPopState(e))
   }
 
@@ -104,21 +109,26 @@ class Controller {
    * This function creates Views when they are not initialized yet and binds events for the context.
    * @param {Element} context - The context to intialize
    */
-  initializeContext (context) {
-
-    Array
-      .from(context.querySelectorAll(`[${attributes.dict.view}]`))
+  initializeContext(context) {
+    Array.from(context.querySelectorAll(`[${attributes.dict.view}]`))
       .filter(element => !this._viewsMap.has(element))
-      .forEach(element => this._viewsMap.set(element, this._buildView(element, this._model)))
+      .forEach(element =>
+        this._viewsMap.set(element, this._buildView(element, this._model))
+      )
 
-    Array
-      .from(context.querySelectorAll(`[href][${attributes.dict.viewLink}]`))
-      .forEach(link => link.addEventListener('click', this._onLinkClick))
+    Array.from(
+      context.querySelectorAll(`[href][${attributes.dict.viewLink}]`)
+    ).forEach(link => link.addEventListener('click', this._onLinkClick))
 
-    Array
-      .from(context.querySelectorAll(`[${attributes.dict.activateView}]`))
-      .forEach(link => link.addEventListener('click', this._onActivateViewClick))
+    Array.from(
+      context.querySelectorAll(`[${attributes.dict.activateView}]`)
+    ).forEach(link => link.addEventListener('click', this._onActivateViewClick))
 
+    Array.from(
+      context.querySelectorAll(`[${attributes.dict.deactivateView}]`)
+    ).forEach(link =>
+      link.addEventListener('click', this._onDeactivateViewClick)
+    )
   }
 
   /**
@@ -128,11 +138,11 @@ class Controller {
    * @returns {View} - The created view
    * @private
    */
-  _buildView (element, model) {
+  _buildView(element, model) {
     const name = element.getAttribute(attributes.dict.view)
     const persist = element.hasAttribute(attributes.dict.persistView)
     const transition = this._options.transitions[name] || Transition
-    return new View(element, {name, transition, persist, model})
+    return new View(element, { name, transition, persist, model })
   }
 
   /**
@@ -142,15 +152,18 @@ class Controller {
    * @param doc
    * @private
    */
-  _throwOnUnknownViews (doc) {
-    const message = name => `Not able to determine where [${attributes.dict.view}='${name}'] should be inserted.`
+  _throwOnUnknownViews(doc) {
+    const message = name =>
+      `Not able to determine where [${
+        attributes.dict.view
+      }='${name}'] should be inserted.`
 
-    Array
-      .from(doc.querySelectorAll(`[${attributes.dict.view}]`))
+    Array.from(doc.querySelectorAll(`[${attributes.dict.view}]`))
       .map(viewElement => viewElement.getAttribute(attributes.dict.view))
       .filter(name => !this.views.some(view => view.name === name))
-      .forEach(name => { throw new Error(message(name)) })
-
+      .forEach(name => {
+        throw new Error(message(name))
+      })
   }
 
   /**
@@ -159,8 +172,11 @@ class Controller {
    * @returns {boolean}
    * @private
    */
-  _isCurrentUrl (url) {
-    return this._options.sanitizeUrl(url) === this._options.sanitizeUrl(window.location.href)
+  _isCurrentUrl(url) {
+    return (
+      this._options.sanitizeUrl(url) ===
+      this._options.sanitizeUrl(window.location.href)
+    )
   }
 
   /**
@@ -170,17 +186,16 @@ class Controller {
    * @param {Event} e - Click event
    * @private
    */
-  async _onLinkClick (e) {
+  async _onLinkClick(e) {
     e.preventDefault()
 
     const url = this._options.sanitizeUrl(e.currentTarget.href)
     const viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink)
     const hints = viewLink ? viewLink.split(',') : this._options.defaultHints
-    const model = new Model({url, hints}, this._options.fetch)
+    const model = new Model({ url, hints }, this._options.fetch)
 
     this._updatePage(model)
     this._addHistoryEntry(model)
-
   }
 
   /**
@@ -190,10 +205,16 @@ class Controller {
    * @param {Event} e - Click event
    * @private
    */
-  _onActivateViewClick (e) {
+  _onActivateViewClick(e) {
     e.preventDefault()
     const name = e.currentTarget.getAttribute(attributes.dict.activateView)
     this.activateView(name)
+  }
+
+  _onDeactivateViewClick(e) {
+    e.preventDefault()
+    const name = e.currentTarget.getAttribute(attributes.dict.deactivateView)
+    this.deactivateView(name)
   }
 
   /**
@@ -207,13 +228,23 @@ class Controller {
   }
 
   /**
+   * Deactivate a view by name
+   * @param {string} name - Name of the view to activate
+   */
+  deactivateView(name) {
+    this._getViewByName(name).setModel(null)
+  }
+
+  /**
    * Retreive a Model from a View
    * @param {string} name - The name of a View
    * @returns {Model} - The model currently active for the given View
    * @private
    */
-  _getViewByName (name) {
-    const element = document.querySelector(`[${attributes.dict.view}="${name}"]`)
+  _getViewByName(name) {
+    const element = document.querySelector(
+      `[${attributes.dict.view}="${name}"]`
+    )
     return this._viewsMap.get(element)
   }
 
@@ -222,7 +253,7 @@ class Controller {
    * @param {Event} e - Event
    * @private
    */
-  _onPopState (e) {
+  _onPopState(e) {
     try {
       const model = new Model(e.state.model, this._options.fetch)
       this._updatePage(model)
@@ -235,12 +266,12 @@ class Controller {
    * @returns {Promise.<void>} - Resolves when updating the page is done
    * @private
    */
-  async _updatePage (model) {
+  async _updatePage(model) {
     window.dispatchEvent(new CustomEvent('pagewillupdate'))
     this._model = model
     try {
       const views = this.views
-      const transitions = views.forEach(view => (view.model = model))
+      const transitions = views.forEach(view => view.setModel(model))
 
       const done = Promise.all(
         views
@@ -253,8 +284,8 @@ class Controller {
       this._options.updateDocument(doc)
 
       await done
-      window.dispatchEvent(new CustomEvent('pagedidupdate'))
 
+      window.dispatchEvent(new CustomEvent('pagedidupdate'))
     } catch (err) {
       console.error(err)
       window.location.href = model.url
@@ -267,8 +298,7 @@ class Controller {
    * @param {boolean} [replaceEntry=false] - Whether to replace the history entry, instead of pushing it.
    * @private
    */
-  _addHistoryEntry (model, replaceEntry = false) {
-
+  _addHistoryEntry(model, replaceEntry = false) {
     const state = {
       title: document.title,
       url: model.url,
@@ -278,10 +308,8 @@ class Controller {
     const method = replaceEntry ? 'replaceState' : 'pushState'
     history[method](state, document.title, model.url)
 
-    window.dispatchEvent(new CustomEvent('statechange', {detail: state}))
-
+    window.dispatchEvent(new CustomEvent('statechange', { detail: state }))
   }
-
 }
 
 export default Controller

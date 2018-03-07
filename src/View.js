@@ -2,33 +2,32 @@ import Transition from './Transition'
 import attributes from './Attributes'
 
 const unique = arr => Array.from(new Set(arr))
-const eventOptions = {bubbles: true, cancelable: true}
+const eventOptions = { bubbles: true, cancelable: true }
+const errorHintedAtButNotFound = name => err => {
+  console.warn(
+    `Hint '${name}' was given, but not found in the loaded document.`
+  )
+  throw err
+}
 
 /**
  * @class View
  * @classdesc This class manages it's own bit of the document, invoking the transitions for it.
  */
 class View {
-
   /**
    * @param {Element} element - The element associated with the view
    * @param {Object} options - Options for the view
    * @param {string|null} options.name = null - The name of the view. You should set this
-   * @param {boolean} options.persist = false - If a view is persistant, it will not exit if it's not found within the loaded document.
    * @param {Transition} options.transition = Transition - The transition to use for this view
    * @param {string|null} options.selector = null - The selector to retreive a new node for this view from the loaded document. If left set to `null`, `[data-view="viewname"]` will be used. If you set an attributeOverride for 'data-view', that will be used instead.
    * @param {Model|null} options.model = null - The initial model of the view. You should set this.
    */
-  constructor (element, options = {}) {
-
+  constructor(element, options = {}) {
     this._element = element
     this._options = Object.assign(View.options, options)
 
     this.active = !!this._element.innerHTML.trim()
-
-    this._persist = typeof this._options.persist === 'undefined'
-      ? this._element.hasAttribute(attributes.dict.persistView)
-      : this._options.persist
 
     this._activeModel = this._options.model
     this._selector = `[${attributes.dict.view}="${this._options.name}"]`
@@ -37,17 +36,15 @@ class View {
     if (!(this._transition instanceof Transition)) {
       throw new Error('Provided transition is not an instance of Transition')
     }
-
   }
 
   /**
    * Default options
    * @type {object}
    */
-  static get options () {
+  static get options() {
     return {
       name: null,
-      persist: false,
       transition: Transition,
       model: null
     }
@@ -57,7 +54,7 @@ class View {
    * Returns whether this View is currently active. A View is set to active when its entered and set to inactive when its exited.
    * @returns {boolean} - Active
    */
-  get active () {
+  get active() {
     return this._active
   }
 
@@ -65,7 +62,7 @@ class View {
    * Set the active state of this View.
    * @param {boolean} bool - Active
    */
-  set active (bool) {
+  set active(bool) {
     this._active = bool
     this._element.setAttribute(attributes.dict.viewActive, bool)
   }
@@ -73,7 +70,7 @@ class View {
   /**
    * @returns {boolean} - Whether this View is loading
    */
-  get loading () {
+  get loading() {
     return this._isLoading
   }
 
@@ -81,10 +78,11 @@ class View {
    * Set's the loading state for this View
    * @param {boolean} bool
    */
-  set loading (bool) {
-
+  set loading(bool) {
     this._isLoading = bool
-    const loadingViews = document.body.hasAttribute(attributes.dict.viewsLoading)
+    const loadingViews = document.body.hasAttribute(
+      attributes.dict.viewsLoading
+    )
       ? document.body.getAttribute(attributes.dict.viewsLoading).split(' ')
       : []
 
@@ -92,14 +90,16 @@ class View {
       ? unique([...loadingViews, this._options.name])
       : loadingViews.filter(name => name !== this._options.name)
 
-    document.body.setAttribute(attributes.dict.viewsLoading, newLoadingViews.join(' '))
-
+    document.body.setAttribute(
+      attributes.dict.viewsLoading,
+      newLoadingViews.join(' ')
+    )
   }
 
   /**
    * @returns {Model} - The Model currently associated with this view
    */
-  get model () {
+  get model() {
     return this._activeModel
   }
 
@@ -111,36 +111,43 @@ class View {
    *   3. The view is not included in the Model, deactivate
    * @param {Model} model
    */
-  set model(model) {
-    this._transition.start()
-
-    const isAlreadySet = this._activeModel && this._activeModel === model
-    if (isAlreadySet) {
+  async setModel(model) {
+    if (this._activeModel === model) return
+    if (!model) {
+      this._transition.start()
+      await this._deactivate()
       this._transition.done()
       return
     }
 
-    model
-      .includesView(this._options.name)
-      .then(
-        includesView =>
-          includesView ? this._activate(model) : this._deactivate()
+    const isHintedAt = model.hasHint(this._options.name)
+    const includedInModel =
+      isHintedAt || (await model.includesView(this._options.name))
+    if (!includedInModel) return
+
+    this._transition.start()
+
+    // Take a leap of faith and activate the view based on a hint from the user
+    if (isHintedAt) {
+      await this._activate(model).catch(
+        errorHintedAtButNotFound(this._options.name)
       )
-      .then(() => this._transition.done())
-      .catch(err => {
-        console.error(err)
-        throw new Error(
-          `Hint '${
-            this._options.name
-          }' was given, but not found in the loaded document.`
-        )
-      })
+      this._transition.done()
+      return
+    }
+
+    const doc = await model.doc
+    const node = doc.querySelector(this._selector)
+    const active = node && Boolean(node.innerHTML.trim())
+
+    await (active ? this._activate(model) : this._deactivate())
+    this._transition.done()
   }
 
   /**
    * @returns {string} - The name of this view
    */
-  get name () {
+  get name() {
     return this._options.name
   }
 
@@ -154,18 +161,22 @@ class View {
    * @returns {Promise.<void>} - A promise resolving when the activation of the new Model is complete
    * @private
    */
-  async _activate (model) {
-
+  async _activate(model) {
     this.loading = true
-    model.doc.then(() => { this.loading = false })
+    model.doc.then(() => {
+      this.loading = false
+    })
 
     if (this.active) {
       this._dispatch('viewwillexit')
       await this._transition.exit()
+      this._transition.exitDone()
       this._dispatch('viewdidexit')
     }
-    this._transition.exitDone()
-    this.loading && this._transition.loading()
+
+    if (this.loading) {
+      this._transition.loading()
+    }
 
     const doc = await model.doc
     const node = doc.querySelector(this._selector)
@@ -182,17 +193,14 @@ class View {
     }
 
     this.active = active
-
   }
 
   /**
    * Deactivate the Model for this View.
    * @private
    */
-  async _deactivate () {
-
+  async _deactivate() {
     if (!this.active) return
-    if (this._persist) return
 
     this._dispatch('viewwillexit')
     await this._transition.exit()
@@ -201,13 +209,11 @@ class View {
 
     this.active = false
     this._activeModel = null
-
   }
 
-  _dispatch (eventName) {
+  _dispatch(eventName) {
     this._element.dispatchEvent(new CustomEvent(eventName, eventOptions))
   }
-
 }
 
 export default View

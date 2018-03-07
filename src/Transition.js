@@ -1,7 +1,7 @@
 import attributes from './Attributes'
 
 const reflow = element => element.offsetHeight
-const eventOptions = {bubbles: true, cancelable: true}
+const eventOptions = { bubbles: true, cancelable: true }
 
 /**
  * @class Transition
@@ -19,11 +19,10 @@ const eventOptions = {bubbles: true, cancelable: true}
  * }
  */
 class Transition {
-
   /**
    * @param {Element} view - The view element
    */
-  constructor (view) {
+  constructor(view) {
     this._view = view
     this.didExit = this.didEnter = this.didComplete = Promise.resolve()
   }
@@ -42,7 +41,7 @@ class Transition {
    * @description Exit transition for the given view.
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
-  async exit () {
+  async exit() {
     this._view.removeAttribute(attributes.dict.transition)
     reflow(this._view)
     this._view.setAttribute(attributes.dict.transition, 'out')
@@ -53,7 +52,7 @@ class Transition {
    * if the requested document is still loading when exit() completes.
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'loading'
    */
-  async loading () {
+  async loading() {
     this._view.removeAttribute(attributes.dict.transition)
     reflow(this._view)
     this._view.setAttribute(attributes.dict.transition, 'loading')
@@ -64,7 +63,7 @@ class Transition {
    * @param {String} newNode - The new views node
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
-  async enter (newNode, newDoc) {
+  async enter(newNode, newDoc) {
     this.updateHtml(newNode)
     this._view.removeAttribute(attributes.dict.transition)
     reflow(this._view)
@@ -72,11 +71,13 @@ class Transition {
   }
 
   /**
-   * Updates the view element with new HTML and dispatches the 'viewhtmlupdated' lifecycle event
+   * Updates the view element with new HTML and dispatches the 'viewhtmldidupdate' lifecycle event
    * @param {String} newNode - The new views node
    */
-  updateHtml (newNode) {
-    this._view.dispatchEvent(new CustomEvent('viewhtmlwillupdate', eventOptions))
+  updateHtml(newNode) {
+    this._view.dispatchEvent(
+      new CustomEvent('viewhtmlwillupdate', eventOptions)
+    )
     this._view.innerHTML = newNode.innerHTML
     this._view.dispatchEvent(new CustomEvent('viewhtmldidupdate', eventOptions))
   }
@@ -84,13 +85,12 @@ class Transition {
   /**
    * Cleans up after transitions have completed
    */
-  done () {
+  done() {
     this.exitDone()
     this.enterDone()
     this._view.removeAttribute(attributes.dict.transition)
     reflow(this._view)
   }
-
 }
 
 export default Transition
