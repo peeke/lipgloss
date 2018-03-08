@@ -1,4 +1,5 @@
 import Transition from './Transition'
+import Model from './Model'
 import attributes from './Attributes'
 
 const unique = arr => Array.from(new Set(arr))
@@ -112,7 +113,9 @@ class View {
    * @param {Model} model
    */
   async setModel(model) {
-    if (this._activeModel === model) return
+    
+    if (Model.equal(model, this._activeModel)) return
+
     if (!model) {
       this._transition.start()
       await this._deactivate()

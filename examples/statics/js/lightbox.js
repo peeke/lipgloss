@@ -123,7 +123,6 @@ var toConsumableArray = function (arr) {
  * @classdesc Attribute configuration class for Lipgloss
  */
 var Attributes = function () {
-
   /**
    * Unless overwritten, the default attributes are used
    */
@@ -136,6 +135,7 @@ var Attributes = function () {
       viewActive: 'data-view-active',
       viewsLoading: 'data-views-loading',
       activateView: 'data-activate-view',
+      deactivateView: 'data-deactivate-view',
       transition: 'data-transition'
     };
   }
@@ -170,7 +170,6 @@ var attributes = new Attributes();
 var _async$2 = function () {
   try {
     if (isNaN.apply(null, {})) {
-
       return function (f) {
         return function () {
           try {
@@ -194,24 +193,25 @@ var _async$2 = function () {
 }();var reflow = function reflow(element) {
   return element.offsetHeight;
 };
-var eventOptions$1 = { bubbles: true, cancelable: true /**
-                                                      * @class Transition
-                                                      * @classdesc Basic Transition class. All transitions you create should have this class as
-                                                      * (grand)parent. When extending Transition, as a rule of thumb it's good to call this the
-                                                      * super functions before your own functionality. E.g.: Sometimes you may want to do some
-                                                      * preperation work, in which it is just fine to do this before you call super.exit()
-                                                      *
-                                                      * If you extend Transition, but choose to implement your own enter method, you have to call
-                                                      * this.updateHtml(newNode) to update the HTML in order to preserve the lifecycle events.
-                                                      * @example <caption>Extending Transition</caption>
-                                                      * async exit() {
-                                                      *   super.exit()
-                                                      *   // Your code
-                                                      * }
-                                                      */
+var eventOptions$1 = { bubbles: true, cancelable: true
+
+  /**
+   * @class Transition
+   * @classdesc Basic Transition class. All transitions you create should have this class as
+   * (grand)parent. When extending Transition, as a rule of thumb it's good to call this the
+   * super functions before your own functionality. E.g.: Sometimes you may want to do some
+   * preperation work, in which it is just fine to do this before you call super.exit()
+   *
+   * If you extend Transition, but choose to implement your own enter method, you have to call
+   * this.updateHtml(newNode) to update the HTML in order to preserve the lifecycle events.
+   * @example <caption>Extending Transition</caption>
+   * async exit() {
+   *   super.exit()
+   *   // Your code
+   * }
+   */
 };
 var Transition = function () {
-
   /**
    * @param {Element} view - The view element
    */
@@ -285,7 +285,7 @@ var Transition = function () {
     })
 
     /**
-     * Updates the view element with new HTML and dispatches the 'viewhtmlupdated' lifecycle event
+     * Updates the view element with new HTML and dispatches the 'viewhtmldidupdate' lifecycle event
      * @param {String} newNode - The new views node
      */
 
@@ -318,7 +318,7 @@ var Transition = function () {
   return Transition;
 }();
 
-var _async$1 = function () {
+var _async$3 = function () {
   try {
     if (isNaN.apply(null, {})) {
       return function (f) {
@@ -332,6 +332,144 @@ var _async$1 = function () {
       };
     }
   } catch (e) {}return function (f) {
+    // Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
+    return function () {
+      try {
+        return Promise.resolve(f.apply(this, Array.prototype.slice.call(arguments)));
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    };
+  };
+}();function _await$2(value, then, direct) {
+  if (direct) {
+    return then ? then(value) : value;
+  }value = Promise.resolve(value);return then ? value.then(then) : value;
+}var modelId = 0;
+
+/**
+ * @class Model
+ * @classdesc The Model contains all the data needed by a View to update.
+ */
+
+var Model = function () {
+
+  /**
+   * Initialize a new Model
+   * @param {object} options - The configuration for the Model
+   * @param {string} options.url - The url to request
+   * @param {array} options.hints=string[] - The views expected to be present on the requested page
+   * @param {object} fetchOptions = The options used to fetch the url
+   */
+  function Model(options, fetchOptions) {
+    classCallCheck(this, Model);
+
+    this._request = new Request(options.url, fetchOptions);
+    this._hints = options.hints || [];
+    this._doc = null;
+    this._id = options.id || modelId++;
+  }
+
+  createClass(Model, [{
+    key: 'hasHint',
+    value: function hasHint(name) {
+      return this._hints.includes(name);
+    }
+
+    /**
+     * A check to see if name was included the given hints
+     * @param {string} name - A name of a view
+     * @returns {boolean}
+     */
+
+  }, {
+    key: 'includesView',
+    value: _async$3(function (name) {
+      var _this = this;
+
+      return _await$2(_this.doc, function (doc) {
+        return Boolean(doc.querySelector('[' + attributes.dict.view + '="' + name + '"]'));
+      });
+    })
+
+    /**
+     * Get an object representation of the Model, which can be added to the history state. You can pass it to the
+     * options parameter in the constructor to recreate the model:
+     * @example <caption>Using the model representation</caption>
+     * const representation = model.getRepresentation()
+     * const twin = new Model(representation, fetchOptions)
+     * @returns {{url: string, hints: string[]}}
+     */
+
+  }, {
+    key: 'getRepresentation',
+    value: function getRepresentation() {
+      return { id: this._id, url: this._request.url, hints: this._hints };
+    }
+  }, {
+    key: 'id',
+    get: function get$$1() {
+      return this._id;
+    }
+
+    /**
+     * @description The url used to fetch the new document
+     * @returns {string}
+     */
+
+  }, {
+    key: 'url',
+    get: function get$$1() {
+      return this._request.url;
+    }
+
+    /**
+     * @description Gets the loaded document (lazily)
+     * @returns {Promise.<Element>} - A promise containing the new document
+     */
+
+  }, {
+    key: 'doc',
+    get: function get$$1() {
+      if (!this._doc) {
+        this._doc = fetch(this._request).then(function (response) {
+          return response.ok ? response : Promise.reject();
+        }).then(function (response) {
+          return response.text();
+        }).then(function (html) {
+          return new DOMParser().parseFromString(html, 'text/html');
+        });
+      }
+      return this._doc;
+    }
+  }], [{
+    key: 'equal',
+    value: function equal(model1, model2) {
+      try {
+        return model1 === model2 || model1.id === model2.id;
+      } catch (e) {
+        return false;
+      }
+    }
+  }]);
+  return Model;
+}();
+
+var _async$1 = function () {
+  try {
+    if (isNaN.apply(null, {})) {
+      return function (f) {
+        return function () {
+          try {
+            return Promise.resolve(f.apply(this, arguments));
+          } catch (e) {
+            return Promise.reject(e);
+          }
+        };
+      };
+    }
+  } catch (e) {}
+  return function (f) {
     // Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
     return function () {
       try {
@@ -355,7 +493,8 @@ var _async$1 = function () {
 var eventOptions = { bubbles: true, cancelable: true };
 var errorHintedAtButNotFound = function errorHintedAtButNotFound(name) {
   return function (err) {
-    console.warn('Hint \'' + name + '\' was given, but not found in the loaded document.');throw err;
+    console.warn('Hint \'' + name + '\' was given, but not found in the loaded document.');
+    throw err;
   };
 };
 
@@ -363,8 +502,8 @@ var errorHintedAtButNotFound = function errorHintedAtButNotFound(name) {
  * @class View
  * @classdesc This class manages it's own bit of the document, invoking the transitions for it.
  */
-var View = function () {
 
+var View = function () {
   /**
    * @param {Element} element - The element associated with the view
    * @param {Object} options - Options for the view
@@ -376,7 +515,6 @@ var View = function () {
   function View(element) {
     var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
     classCallCheck(this, View);
-
 
     this._element = element;
     this._options = Object.assign(View.options, options);
@@ -411,21 +549,23 @@ var View = function () {
      * @param {Model} model
      */
     value: _async$1(function (model) {
-      var _this = this;
+      var _this = this,
+          _exit;
 
-      if (_this._activeModel === model) return;
+      if (Model.equal(model, _this._activeModel)) return;
+
       return _invoke(function () {
         if (!model) {
           _this._transition.start();
           return _await$1(_this._deactivate(), function () {
             _this._transition.done();
+            _exit = 1;
           });
         }
-      }, function () {
+      }, function (_result) {
+        if (_exit) return _result;
         var isHintedAt = model.hasHint(_this._options.name);
         return _await$1(isHintedAt || model.includesView(_this._options.name), function (_model$includesView) {
-          var _exit;
-
           var includedInModel = _model$includesView;
           if (!includedInModel) return;
 
@@ -439,8 +579,8 @@ var View = function () {
                 _exit = 1;
               });
             }
-          }, function (_result) {
-            if (_exit) return _result;
+          }, function (_result2) {
+            if (_exit) return _result2;
             return _await$1(model.doc, function (doc) {
               var node = doc.querySelector(_this._selector);
               var active = node && Boolean(node.innerHTML.trim());
@@ -619,121 +759,6 @@ var View = function () {
   return View;
 }();
 
-var _async$3 = function () {
-  try {
-    if (isNaN.apply(null, {})) {
-      return function (f) {
-        return function () {
-          try {
-            return Promise.resolve(f.apply(this, arguments));
-          } catch (e) {
-            return Promise.reject(e);
-          }
-        };
-      };
-    }
-  } catch (e) {}return function (f) {
-    // Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
-    return function () {
-      try {
-        return Promise.resolve(f.apply(this, Array.prototype.slice.call(arguments)));
-      } catch (e) {
-        return Promise.reject(e);
-      }
-    };
-  };
-}();function _await$2(value, then, direct) {
-  if (direct) {
-    return then ? then(value) : value;
-  }value = Promise.resolve(value);return then ? value.then(then) : value;
-}var Model = function () {
-
-  /**
-   * Initialize a new Model
-   * @param {object} options - The configuration for the Model
-   * @param {string} options.url - The url to request
-   * @param {array} options.hints=string[] - The views expected to be present on the requested page
-   * @param {object} fetchOptions = The options used to fetch the url
-   */
-  function Model(options, fetchOptions) {
-    classCallCheck(this, Model);
-
-    this._request = new Request(options.url, fetchOptions);
-    this._hints = options.hints || [];
-    this._doc = null;
-  }
-
-  /**
-   * @description The url used to fetch the new document
-   * @returns {string}
-   */
-
-
-  createClass(Model, [{
-    key: 'hasHint',
-    value: function hasHint(name) {
-      return this._hints.includes(name);
-    }
-
-    /**
-     * A check to see if name was included the given hints
-     * @param {string} name - A name of a view
-     * @returns {boolean}
-     */
-
-  }, {
-    key: 'includesView',
-    value: _async$3(function (name) {
-      var _this = this;
-
-      return _await$2(_this.doc, function (doc) {
-        return Boolean(doc.querySelector('[' + attributes.dict.view + '="' + name + '"]'));
-      });
-    })
-
-    /**
-     * Get an object representation of the Model, which can be added to the history state. You can pass it to the
-     * options parameter in the constructor to recreate the model:
-     * @example <caption>Using the model representation</caption>
-     * const representation = model.getRepresentation()
-     * const twin = new Model(representation, fetchOptions)
-     * @returns {{url: string, hints: string[]}}
-     */
-
-  }, {
-    key: 'getRepresentation',
-    value: function getRepresentation() {
-      return { url: this._request.url, hints: this._hints };
-    }
-  }, {
-    key: 'url',
-    get: function get$$1() {
-      return this._request.url;
-    }
-
-    /**
-     * @description Gets the loaded document (lazily)
-     * @returns {Promise.<Element>} - A promise containing the new document
-     */
-
-  }, {
-    key: 'doc',
-    get: function get$$1() {
-      if (!this._doc) {
-        this._doc = fetch(this._request).then(function (response) {
-          return response.ok ? response : Promise.reject();
-        }).then(function (response) {
-          return response.text();
-        }).then(function (html) {
-          return new DOMParser().parseFromString(html, 'text/html');
-        });
-      }
-      return this._doc;
-    }
-  }]);
-  return Model;
-}();
-
 function _continueIgnored(value) {
   if (value && value.then) {
     return value.then(_empty);
@@ -754,7 +779,8 @@ function _continueIgnored(value) {
   if (direct) {
     return then ? then(value) : value;
   }value = Promise.resolve(value);return then ? value.then(then) : value;
-}var _async = function () {
+}
+var _async = function () {
   try {
     if (isNaN.apply(null, {})) {
       return function (f) {
@@ -792,7 +818,6 @@ var Controller = function () {
   createClass(Controller, [{
     key: 'init',
 
-
     /**
      * Controller is a singleton which should be initialized once trough the init() method to set the options
      * @param {object} options - Options
@@ -800,10 +825,8 @@ var Controller = function () {
      * @param {Object.<string, Transition>} options.transitions - An object containing the Transition's (value) for a given view (property)
      * @param {function(string)} options.sanitizeUrl - A function to transform the url, before it's compared and pushed to the history
      * @param {object} options.fetch - The options to pass into a fetch request
-     */
-    value: function init() {
+     */value: function init() {
       var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
 
       if (!SUPPORTED) return;
 
@@ -858,6 +881,7 @@ var Controller = function () {
       var _this = this;
 
       this._onLinkClick = this._onLinkClick.bind(this);
+      this._onDeactivateViewClick = this._onDeactivateViewClick.bind(this);
       this._onActivateViewClick = this._onActivateViewClick.bind(this);
       document.addEventListener('viewdidenter', function (e) {
         return _this.initializeContext(e.target);
@@ -891,6 +915,10 @@ var Controller = function () {
 
       Array.from(context.querySelectorAll('[' + attributes.dict.activateView + ']')).forEach(function (link) {
         return link.addEventListener('click', _this2._onActivateViewClick);
+      });
+
+      Array.from(context.querySelectorAll('[' + attributes.dict.deactivateView + ']')).forEach(function (link) {
+        return link.addEventListener('click', _this2._onDeactivateViewClick);
       });
     }
 
@@ -990,6 +1018,13 @@ var Controller = function () {
       e.preventDefault();
       var name = e.currentTarget.getAttribute(attributes.dict.activateView);
       this.activateView(name);
+    }
+  }, {
+    key: '_onDeactivateViewClick',
+    value: function _onDeactivateViewClick(e) {
+      e.preventDefault();
+      var name = e.currentTarget.getAttribute(attributes.dict.deactivateView);
+      this.deactivateView(name);
     }
 
     /**
@@ -1097,7 +1132,6 @@ var Controller = function () {
     key: '_addHistoryEntry',
     value: function _addHistoryEntry(model) {
       var replaceEntry = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-
 
       var state = {
         title: document.title,

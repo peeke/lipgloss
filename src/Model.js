@@ -1,5 +1,7 @@
 import attributes from './Attributes'
 
+let modelId = 0
+
 /**
  * @class Model
  * @classdesc The Model contains all the data needed by a View to update.
@@ -17,6 +19,19 @@ class Model {
     this._request = new Request(options.url, fetchOptions)
     this._hints = options.hints || []
     this._doc = null
+    this._id = options.id || modelId++;
+  }
+
+  static equal (model1, model2) {
+    try {
+      return model1 === model2 || model1.id === model2.id
+    } catch(e) {
+      return false
+    }
+  }
+
+  get id () {
+    return this._id
   }
 
   /**
@@ -64,7 +79,7 @@ class Model {
    * @returns {{url: string, hints: string[]}}
    */
   getRepresentation () {
-    return {url: this._request.url, hints: this._hints}
+    return {id: this._id, url: this._request.url, hints: this._hints}
   }
 
 }
