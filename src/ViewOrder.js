@@ -4,16 +4,17 @@ class ViewOrder {
     this._order = []
   }
 
-  push(name) {
-    this._order = [name, ...this._order.filter(n => name !== n)]
+  push(view) {
+    this._order = [view, ...this._order.filter(v => view.name !== v.name)]
+    console.log(this._order)
   }
 
-  delete(name) {
-    this._order = this._order.filter(n => name !== n)
+  delete(view) {
+    this._order = this._order.filter(v => view.name !== v.name)
   }
 
-  get head() {
-    return this._order[0]
+  get order() {
+    return this._order
   }
 
 }

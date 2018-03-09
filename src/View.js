@@ -35,6 +35,8 @@ class View {
     this._selector = `[${attributes.dict.view}="${this._options.name}"]`
     this._transition = new this._options.transition(this._element)
 
+    ViewOrder.push(this)
+
     if (!(this._transition instanceof Transition)) {
       throw new Error('Provided transition is not an instance of Transition')
     }
@@ -115,7 +117,7 @@ class View {
    */
   async setModel(model) {
     
-    if (Model.equal(model, this._activeModel)) return
+    if (model.equals(this._activeModel)) return
 
     if (!model) {
       this._transition.start()
@@ -186,7 +188,7 @@ class View {
     const node = doc.querySelector(this._selector)
     const active = node && Boolean(node.innerHTML.trim())
 
-    ViewOrder.push(this._options.name)
+    ViewOrder.push(this)
 
     if (active) {
       this._dispatch('viewwillenter')
@@ -207,7 +209,7 @@ class View {
    */
   async _deactivate() {
     
-    ViewOrder.delete(this._options.name)
+    ViewOrder.delete(this)
 
     if (!this.active) return
 

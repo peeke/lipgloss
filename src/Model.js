@@ -22,14 +22,6 @@ class Model {
     this._id = options.id || modelId++;
   }
 
-  static equal (model1, model2) {
-    try {
-      return model1 === model2 || model1.id === model2.id
-    } catch(e) {
-      return false
-    }
-  }
-
   get id () {
     return this._id
   }
@@ -70,15 +62,20 @@ class Model {
     return Boolean(doc.querySelector(`[${attributes.dict.view}="${name}"]`))
   }
 
+  equals (model) {
+    if (!model) return false
+    return this === model || this.id === model.id
+  }
+
   /**
-   * Get an object representation of the Model, which can be added to the history state. You can pass it to the
+   * Get an object blueprint of the Model, which can be added to the history state. You can pass it to the
    * options parameter in the constructor to recreate the model:
-   * @example <caption>Using the model representation</caption>
-   * const representation = model.getRepresentation()
-   * const twin = new Model(representation, fetchOptions)
+   * @example <caption>Using the model blueprint</caption>
+   * const blueprint = model.getBlueprint()
+   * const twin = new Model(blueprint, fetchOptions)
    * @returns {{url: string, hints: string[]}}
    */
-  getRepresentation () {
+  getBlueprint () {
     return {id: this._id, url: this._request.url, hints: this._hints}
   }
 

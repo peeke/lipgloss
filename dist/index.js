@@ -87,22 +87,23 @@ var ViewOrder = function () {
 
   createClass(ViewOrder, [{
     key: "push",
-    value: function push(name) {
-      this._order = [name].concat(toConsumableArray(this._order.filter(function (n) {
-        return name !== n;
+    value: function push(view) {
+      this._order = [view].concat(toConsumableArray(this._order.filter(function (v) {
+        return view.name !== v.name;
       })));
+      console.log(this._order);
     }
   }, {
     key: "delete",
-    value: function _delete(name) {
-      this._order = this._order.filter(function (n) {
-        return name !== n;
+    value: function _delete(view) {
+      this._order = this._order.filter(function (v) {
+        return view.name !== v.name;
       });
     }
   }, {
-    key: "head",
+    key: "order",
     get: function get$$1() {
-      return this._order[0];
+      return this._order;
     }
   }]);
   return ViewOrder;
@@ -382,19 +383,25 @@ var Model = function () {
         return Boolean(doc.querySelector('[' + attributes.dict.view + '="' + name + '"]'));
       });
     })
+  }, {
+    key: 'equals',
+    value: function equals(model) {
+      if (!model) return false;
+      return this === model || this.id === model.id;
+    }
 
     /**
-     * Get an object representation of the Model, which can be added to the history state. You can pass it to the
+     * Get an object blueprint of the Model, which can be added to the history state. You can pass it to the
      * options parameter in the constructor to recreate the model:
-     * @example <caption>Using the model representation</caption>
-     * const representation = model.getRepresentation()
-     * const twin = new Model(representation, fetchOptions)
+     * @example <caption>Using the model blueprint</caption>
+     * const blueprint = model.getBlueprint()
+     * const twin = new Model(blueprint, fetchOptions)
      * @returns {{url: string, hints: string[]}}
      */
 
   }, {
-    key: 'getRepresentation',
-    value: function getRepresentation() {
+    key: 'getBlueprint',
+    value: function getBlueprint() {
       return { id: this._id, url: this._request.url, hints: this._hints };
     }
   }, {
@@ -432,15 +439,6 @@ var Model = function () {
         });
       }
       return this._doc;
-    }
-  }], [{
-    key: 'equal',
-    value: function equal(model1, model2) {
-      try {
-        return model1 === model2 || model1.id === model2.id;
-      } catch (e) {
-        return false;
-      }
     }
   }]);
   return Model;
@@ -515,6 +513,8 @@ var View = function () {
     this._selector = '[' + attributes.dict.view + '="' + this._options.name + '"]';
     this._transition = new this._options.transition(this._element);
 
+    ViewOrder$1.push(this);
+
     if (!(this._transition instanceof Transition)) {
       throw new Error('Provided transition is not an instance of Transition');
     }
@@ -542,7 +542,7 @@ var View = function () {
       var _this = this,
           _exit;
 
-      if (Model.equal(model, _this._activeModel)) return;
+      if (model.equals(_this._activeModel)) return;
 
       return _invoke(function () {
         if (!model) {
@@ -623,7 +623,7 @@ var View = function () {
           var node = doc.querySelector(_this2._selector);
           var active = node && Boolean(node.innerHTML.trim());
 
-          ViewOrder$1.push(_this2._options.name);
+          ViewOrder$1.push(_this2);
 
           return _invoke(function () {
             if (active) {
@@ -653,7 +653,7 @@ var View = function () {
     value: _async$1(function () {
       var _this3 = this;
 
-      ViewOrder$1.delete(_this3._options.name);
+      ViewOrder$1.delete(_this3);
 
       if (!_this3.active) return;
 
@@ -1022,11 +1022,20 @@ var Controller = function () {
   }, {
     key: 'deactivateView',
     value: function deactivateView(name) {
-      this._getViewByName(name).setModel(null);
-      ViewOrder$1.delete(name);
-      var model = this._getViewByName(ViewOrder$1.head).model;
-      this._updatePage(model);
-      this._addHistoryEntry(model);
+      var _this5 = this;
+
+      var view = ViewOrder$1.order.find(function (view) {
+        return !_this5._model.equals(view.model);
+      });
+
+      if (!view) {
+        throw new Error('Unable to deactivate view ' + name + ', because there\'s no view to fall back to.');
+      }
+
+      ViewOrder$1.delete(this._getViewByName(name));
+
+      this._updatePage(view.model);
+      this._addHistoryEntry(view.model);
     }
 
     /**
@@ -1068,13 +1077,13 @@ var Controller = function () {
   }, {
     key: '_updatePage',
     value: _async(function (model) {
-      var _this5 = this;
+      var _this6 = this;
 
       window.dispatchEvent(new CustomEvent('pagewillupdate'));
-      _this5._model = model;
+      _this6._model = model;
       return _continueIgnored(_catch(function () {
-        var views = _this5.views;
-        var transitions = views.forEach(function (view) {
+        var views = _this6.views;
+        views.forEach(function (view) {
           return view.setModel(model);
         });
 
@@ -1085,8 +1094,8 @@ var Controller = function () {
         }));
 
         return _await(model.doc, function (doc) {
-          _this5._throwOnUnknownViews(doc);
-          _this5._options.updateDocument(doc);
+          _this6._throwOnUnknownViews(doc);
+          _this6._options.updateDocument(doc);
 
           return _await(done, function () {
 
@@ -1114,7 +1123,7 @@ var Controller = function () {
       var state = {
         title: document.title,
         url: model.url,
-        model: model.getRepresentation()
+        model: model.getBlueprint()
       };
 
       var method = replaceEntry ? 'replaceState' : 'pushState';
@@ -1131,10 +1140,10 @@ var Controller = function () {
      * @returns {View[]} - An array of View instances
      */
     get: function get$$1() {
-      var _this6 = this;
+      var _this7 = this;
 
       return Array.from(document.querySelectorAll('[' + attributes.dict.view + ']')).map(function (element) {
-        return _this6._viewsMap.get(element);
+        return _this7._viewsMap.get(element);
       });
     }
   }], [{

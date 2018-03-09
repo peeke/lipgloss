@@ -216,11 +216,16 @@ class Controller {
    * @param {string} name - Name of the view to activate
    */
   deactivateView(name) {
-    this._getViewByName(name).setModel(null)
-    ViewOrder.delete(name)
-    const model = this._getViewByName(ViewOrder.head).model
-    this._updatePage(model)
-    this._addHistoryEntry(model)
+    const view = ViewOrder.order.find(view => !this._model.equals(view.model))
+
+    if (!view) {
+      throw new Error(`Unable to deactivate view ${name}, because there's no view to fall back to.`)
+    }
+
+    ViewOrder.delete(this._getViewByName(name))
+
+    this._updatePage(view.model)
+    this._addHistoryEntry(view.model)
   }
 
   /**
@@ -259,7 +264,7 @@ class Controller {
     this._model = model
     try {
       const views = this.views
-      const transitions = views.forEach(view => view.setModel(model))
+      views.forEach(view => view.setModel(model))
 
       const done = Promise.all(
         views
@@ -290,7 +295,7 @@ class Controller {
     const state = {
       title: document.title,
       url: model.url,
-      model: model.getRepresentation()
+      model: model.getBlueprint()
     }
 
     const method = replaceEntry ? 'replaceState' : 'pushState'
