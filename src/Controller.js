@@ -1,4 +1,5 @@
 import View from './View'
+import ViewOrder from './ViewOrder'
 import Model from './Model'
 import Transition from './Transition'
 import attributes from './Attributes'
@@ -96,7 +97,6 @@ class Controller {
   _bindEvents() {
     this._onLinkClick = this._onLinkClick.bind(this)
     this._onDeactivateViewClick = this._onDeactivateViewClick.bind(this)
-    this._onActivateViewClick = this._onActivateViewClick.bind(this)
     document.addEventListener('viewdidenter', e =>
       this.initializeContext(e.target)
     )
@@ -199,32 +199,16 @@ class Controller {
   }
 
   /**
-   * Handles a click on an element with a [data-activate-view="viewname"] attribute.
-   * Navigates to the current url of the given View. This is particularly useful when you want to close an overlay or lightbox.
+   * Handles a click on an element with a [data-deactivate-view="viewname"] attribute.
+   * Navigates to the current url of View next up in the ViewOrder. This is particularly useful when you want to close an overlay or lightbox.
    * This function calls the _updatePage function and adds a history entry.
    * @param {Event} e - Click event
    * @private
    */
-  _onActivateViewClick(e) {
-    e.preventDefault()
-    const name = e.currentTarget.getAttribute(attributes.dict.activateView)
-    this.activateView(name)
-  }
-
   _onDeactivateViewClick(e) {
     e.preventDefault()
     const name = e.currentTarget.getAttribute(attributes.dict.deactivateView)
     this.deactivateView(name)
-  }
-
-  /**
-   * Activate a view by name
-   * @param {string} name - Name of the view to activate
-   */
-  activateView(name) {
-    const model = this._getViewByName(name).model
-    this._updatePage(model)
-    this._addHistoryEntry(model)
   }
 
   /**
@@ -233,6 +217,10 @@ class Controller {
    */
   deactivateView(name) {
     this._getViewByName(name).setModel(null)
+    ViewOrder.delete(name)
+    const model = this._getViewByName(ViewOrder.head).model
+    this._updatePage(model)
+    this._addHistoryEntry(model)
   }
 
   /**

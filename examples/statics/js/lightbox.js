@@ -118,6 +118,38 @@ var toConsumableArray = function (arr) {
   }
 };
 
+var ViewOrder = function () {
+  function ViewOrder() {
+    classCallCheck(this, ViewOrder);
+
+    this._order = [];
+  }
+
+  createClass(ViewOrder, [{
+    key: "push",
+    value: function push(name) {
+      this._order = [name].concat(toConsumableArray(this._order.filter(function (n) {
+        return name !== n;
+      })));
+    }
+  }, {
+    key: "delete",
+    value: function _delete(name) {
+      this._order = this._order.filter(function (n) {
+        return name !== n;
+      });
+    }
+  }, {
+    key: "head",
+    get: function get$$1() {
+      return this._order[0];
+    }
+  }]);
+  return ViewOrder;
+}();
+
+var ViewOrder$1 = new ViewOrder();
+
 /**
  * @class Attributes
  * @classdesc Attribute configuration class for Lipgloss
@@ -134,7 +166,6 @@ var Attributes = function () {
       viewLink: 'data-view-link',
       viewActive: 'data-view-active',
       viewsLoading: 'data-views-loading',
-      activateView: 'data-activate-view',
       deactivateView: 'data-deactivate-view',
       transition: 'data-transition'
     };
@@ -468,8 +499,7 @@ var _async$1 = function () {
         };
       };
     }
-  } catch (e) {}
-  return function (f) {
+  } catch (e) {}return function (f) {
     // Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
     return function () {
       try {
@@ -633,6 +663,8 @@ var View = function () {
           var node = doc.querySelector(_this2._selector);
           var active = node && Boolean(node.innerHTML.trim());
 
+          ViewOrder$1.push(_this2._options.name);
+
           return _invoke(function () {
             if (active) {
               _this2._dispatch('viewwillenter');
@@ -660,6 +692,8 @@ var View = function () {
     key: '_deactivate',
     value: _async$1(function () {
       var _this3 = this;
+
+      ViewOrder$1.delete(_this3._options.name);
 
       if (!_this3.active) return;
 
@@ -779,11 +813,11 @@ function _continueIgnored(value) {
   if (direct) {
     return then ? then(value) : value;
   }value = Promise.resolve(value);return then ? value.then(then) : value;
-}
-var _async = function () {
+}var _async = function () {
   try {
     if (isNaN.apply(null, {})) {
       return function (f) {
+
         return function () {
           try {
             return Promise.resolve(f.apply(this, arguments));
@@ -825,7 +859,8 @@ var Controller = function () {
      * @param {Object.<string, Transition>} options.transitions - An object containing the Transition's (value) for a given view (property)
      * @param {function(string)} options.sanitizeUrl - A function to transform the url, before it's compared and pushed to the history
      * @param {object} options.fetch - The options to pass into a fetch request
-     */value: function init() {
+     */
+    value: function init() {
       var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
       if (!SUPPORTED) return;
@@ -882,7 +917,6 @@ var Controller = function () {
 
       this._onLinkClick = this._onLinkClick.bind(this);
       this._onDeactivateViewClick = this._onDeactivateViewClick.bind(this);
-      this._onActivateViewClick = this._onActivateViewClick.bind(this);
       document.addEventListener('viewdidenter', function (e) {
         return _this.initializeContext(e.target);
       });
@@ -1005,39 +1039,19 @@ var Controller = function () {
     })
 
     /**
-     * Handles a click on an element with a [data-activate-view="viewname"] attribute.
-     * Navigates to the current url of the given View. This is particularly useful when you want to close an overlay or lightbox.
+     * Handles a click on an element with a [data-deactivate-view="viewname"] attribute.
+     * Navigates to the current url of View next up in the ViewOrder. This is particularly useful when you want to close an overlay or lightbox.
      * This function calls the _updatePage function and adds a history entry.
      * @param {Event} e - Click event
      * @private
      */
 
   }, {
-    key: '_onActivateViewClick',
-    value: function _onActivateViewClick(e) {
-      e.preventDefault();
-      var name = e.currentTarget.getAttribute(attributes.dict.activateView);
-      this.activateView(name);
-    }
-  }, {
     key: '_onDeactivateViewClick',
     value: function _onDeactivateViewClick(e) {
       e.preventDefault();
       var name = e.currentTarget.getAttribute(attributes.dict.deactivateView);
       this.deactivateView(name);
-    }
-
-    /**
-     * Activate a view by name
-     * @param {string} name - Name of the view to activate
-     */
-
-  }, {
-    key: 'activateView',
-    value: function activateView(name) {
-      var model = this._getViewByName(name).model;
-      this._updatePage(model);
-      this._addHistoryEntry(model);
     }
 
     /**
@@ -1049,6 +1063,10 @@ var Controller = function () {
     key: 'deactivateView',
     value: function deactivateView(name) {
       this._getViewByName(name).setModel(null);
+      ViewOrder$1.delete(name);
+      var model = this._getViewByName(ViewOrder$1.head).model;
+      this._updatePage(model);
+      this._addHistoryEntry(model);
     }
 
     /**

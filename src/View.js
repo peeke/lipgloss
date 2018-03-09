@@ -1,3 +1,4 @@
+import ViewOrder from './ViewOrder'
 import Transition from './Transition'
 import Model from './Model'
 import attributes from './Attributes'
@@ -185,6 +186,8 @@ class View {
     const node = doc.querySelector(this._selector)
     const active = node && Boolean(node.innerHTML.trim())
 
+    ViewOrder.push(this._options.name)
+
     if (active) {
       this._dispatch('viewwillenter')
       await this._transition.enter(node, doc)
@@ -203,6 +206,9 @@ class View {
    * @private
    */
   async _deactivate() {
+    
+    ViewOrder.delete(this._options.name)
+
     if (!this.active) return
 
     this._dispatch('viewwillexit')

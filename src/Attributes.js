@@ -12,7 +12,6 @@ class Attributes {
       viewLink: 'data-view-link',
       viewActive: 'data-view-active',
       viewsLoading: 'data-views-loading',
-      activateView: 'data-activate-view',
       deactivateView: 'data-deactivate-view',
       transition: 'data-transition'
     }
