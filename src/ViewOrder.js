@@ -6,7 +6,6 @@ class ViewOrder {
 
   push(view) {
     this._order = [view, ...this._order.filter(v => view.name !== v.name)]
-    console.log(this._order)
   }
 
   delete(view) {

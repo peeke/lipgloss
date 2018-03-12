@@ -91,7 +91,6 @@ var ViewOrder = function () {
       this._order = [view].concat(toConsumableArray(this._order.filter(function (v) {
         return view.name !== v.name;
       })));
-      console.log(this._order);
     }
   }, {
     key: "delete",
