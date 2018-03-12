@@ -121,10 +121,6 @@ class Controller {
     ).forEach(link => link.addEventListener('click', this._onLinkClick))
 
     Array.from(
-      context.querySelectorAll(`[${attributes.dict.activateView}]`)
-    ).forEach(link => link.addEventListener('click', this._onActivateViewClick))
-
-    Array.from(
       context.querySelectorAll(`[${attributes.dict.deactivateView}]`)
     ).forEach(link =>
       link.addEventListener('click', this._onDeactivateViewClick)
@@ -188,12 +184,21 @@ class Controller {
    */
   async _onLinkClick(e) {
     e.preventDefault()
-
     const url = this._options.sanitizeUrl(e.currentTarget.href)
     const viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink)
     const hints = viewLink ? viewLink.split(',') : this._options.defaultHints
-    const model = new Model({ url, hints }, this._options.fetch)
+    this.openUrl(url, hints)
+  }
 
+  /**
+   * 
+   * @param {String} url - The url to open.
+   * @param {Array<String>|String} hints - The views to update. Can be either a string or an array with multiple strings.
+   * @param {Object} fetchOptions - The options to pass to fetch().
+   */
+  openUrl(url, hints = this._options.defaultHints, fetchOptions = this._options.fetch) {
+    hints = Array.isArray(hints) ? hints : [hints]
+    const model = new Model({ url, hints }, fetchOptions)
     this._updatePage(model)
     this._addHistoryEntry(model)
   }

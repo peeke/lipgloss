@@ -947,10 +947,6 @@ var Controller = function () {
         return link.addEventListener('click', _this2._onLinkClick);
       });
 
-      Array.from(context.querySelectorAll('[' + attributes.dict.activateView + ']')).forEach(function (link) {
-        return link.addEventListener('click', _this2._onActivateViewClick);
-      });
-
       Array.from(context.querySelectorAll('[' + attributes.dict.deactivateView + ']')).forEach(function (link) {
         return link.addEventListener('click', _this2._onDeactivateViewClick);
       });
@@ -1028,15 +1024,30 @@ var Controller = function () {
       var _this4 = this;
 
       e.preventDefault();
-
       var url = _this4._options.sanitizeUrl(e.currentTarget.href);
       var viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink);
       var hints = viewLink ? viewLink.split(',') : _this4._options.defaultHints;
-      var model = new Model({ url: url, hints: hints }, _this4._options.fetch);
-
-      _this4._updatePage(model);
-      _this4._addHistoryEntry(model);
+      _this4.openUrl(url, hints);
     })
+
+    /**
+     * 
+     * @param {String} url - The url to open.
+     * @param {Array<String>|String} hints - The views to update. Can be either a string or an array with multiple strings.
+     * @param {Object} fetchOptions - The options to pass to fetch().
+     */
+
+  }, {
+    key: 'openUrl',
+    value: function openUrl(url) {
+      var hints = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this._options.defaultHints;
+      var fetchOptions = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this._options.fetch;
+
+      hints = Array.isArray(hints) ? hints : [hints];
+      var model = new Model({ url: url, hints: hints }, fetchOptions);
+      this._updatePage(model);
+      this._addHistoryEntry(model);
+    }
 
     /**
      * Handles a click on an element with a [data-deactivate-view="viewname"] attribute.
