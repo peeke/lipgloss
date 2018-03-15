@@ -63,16 +63,6 @@ class Model {
     return this._hints.includes(name)
   }
 
-  /**
-   * A check to see if name was included the given hints
-   * @param {string} name - A name of a view
-   * @returns {boolean}
-   */
-  async includesView (name) {
-    const doc = await this.doc
-    return Boolean(doc.querySelector(`[${attributes.dict.view}="${name}"]`))
-  }
-
   equals (model) {
     if (!model) return false
     return this === model || this.id === model.id

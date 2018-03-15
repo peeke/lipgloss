@@ -265,7 +265,7 @@ class Controller {
       this._model = model
       const views = this.getViews()
 
-      views.forEach(view => view.setModel(model))
+      views.forEach(view => view.updateModel(model))
 
       const done = Promise.all(
         views.map(view => view.transition.didComplete)
