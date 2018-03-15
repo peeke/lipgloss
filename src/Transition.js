@@ -1,7 +1,6 @@
 import attributes from './Attributes'
 
 const reflow = element => element.offsetHeight
-const eventOptions = { bubbles: true, cancelable: true }
 
 /**
  * @class Transition
@@ -75,11 +74,14 @@ class Transition {
    * @param {String} newNode - The new views node
    */
   updateHtml(newNode) {
+    const eventOptions = { bubbles: true, cancelable: true }
     this._view.dispatchEvent(
       new CustomEvent('viewhtmlwillupdate', eventOptions)
     )
     this._view.innerHTML = newNode.innerHTML
-    this._view.dispatchEvent(new CustomEvent('viewhtmldidupdate', eventOptions))
+    this._view.dispatchEvent(
+      new CustomEvent('viewhtmldidupdate', eventOptions)
+    )
   }
 
   /**

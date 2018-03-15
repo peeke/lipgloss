@@ -4,7 +4,6 @@ import Model from './Model'
 import attributes from './Attributes'
 
 const unique = arr => Array.from(new Set(arr))
-const eventOptions = { bubbles: true, cancelable: true }
 const errorHintedAtButNotFound = name => err => {
   console.warn(
     `Hint '${name}' was given, but not found in the loaded document.`
@@ -31,15 +30,15 @@ class View {
 
     this.active = !!this._element.innerHTML.trim()
 
-    this._activeModel = this._options.model
+    this._model = this._options.model
     this._selector = `[${attributes.dict.view}="${this._options.name}"]`
     this._transition = new this._options.transition(this._element)
-
-    ViewOrder.push(this)
 
     if (!(this._transition instanceof Transition)) {
       throw new Error('Provided transition is not an instance of Transition')
     }
+
+    ViewOrder.push(this)
   }
 
   /**
@@ -69,6 +68,9 @@ class View {
   set active(bool) {
     this._active = bool
     this._element.setAttribute(attributes.dict.viewActive, bool)
+    if (!bool) {
+      this._model = null
+    }
   }
 
   /**
@@ -104,7 +106,7 @@ class View {
    * @returns {Model} - The Model currently associated with this view
    */
   get model() {
-    return this._activeModel
+    return this._model
   }
 
   /**
@@ -117,24 +119,12 @@ class View {
    */
   async setModel(model) {
     
-    if (model.equals(this._activeModel)) return
-
-    if (!model) {
-      this._transition.start()
-      await this._deactivate()
-      this._transition.done()
-      return
-    }
-
-    const isHintedAt = model.hasHint(this._options.name)
-    const includedInModel =
-      isHintedAt || (await model.includesView(this._options.name))
-    if (!includedInModel) return
-
-    this._transition.start()
+    if (model.equals(this._model)) return
 
     // Take a leap of faith and activate the view based on a hint from the user
-    if (isHintedAt) {
+    if (model.hasHint(this._options.name)) {
+      this._model = model
+      this._transition.start()
       await this._activate(model).catch(
         errorHintedAtButNotFound(this._options.name)
       )
@@ -142,11 +132,22 @@ class View {
       return
     }
 
+    const includedInModel = await model.includesView(this._options.name)
+    if (!includedInModel) return
+
+    this._transition.start()
+
     const doc = await model.doc
     const node = doc.querySelector(this._selector)
     const active = node && Boolean(node.innerHTML.trim())
 
-    await (active ? this._activate(model) : this._deactivate())
+    if (active) {
+      this._model = model
+      await this._activate(model)
+    } else {
+      await this._deactivate()
+    }
+
     this._transition.done()
   }
 
@@ -186,21 +187,15 @@ class View {
 
     const doc = await model.doc
     const node = doc.querySelector(this._selector)
-    const active = node && Boolean(node.innerHTML.trim())
 
+    this.active = true
     ViewOrder.push(this)
 
-    if (active) {
-      this._dispatch('viewwillenter')
-      await this._transition.enter(node, doc)
-      this._transition.enterDone()
-      this._dispatch('viewdidenter')
-      this._activeModel = model
-    } else {
-      this._activeModel = null
-    }
+    this._dispatch('viewwillenter')
+    await this._transition.enter(node, doc)
+    this._transition.enterDone()
+    this._dispatch('viewdidenter')
 
-    this.active = active
   }
 
   /**
@@ -209,20 +204,20 @@ class View {
    */
   async _deactivate() {
     
-    ViewOrder.delete(this)
-
     if (!this.active) return
+
+    this.active = false
+    ViewOrder.delete(this)
 
     this._dispatch('viewwillexit')
     await this._transition.exit()
     this._transition.exitDone()
     this._dispatch('viewdidexit')
 
-    this.active = false
-    this._activeModel = null
   }
 
   _dispatch(eventName) {
+    const eventOptions = { bubbles: true, cancelable: true }
     this._element.dispatchEvent(new CustomEvent(eventName, eventOptions))
   }
 }

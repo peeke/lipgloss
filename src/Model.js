@@ -48,6 +48,17 @@ class Model {
     return this._doc
   }
 
+  /**
+   * Get an object blueprint of the Model, which can be added to the history state. You can pass it to the
+   * options parameter in the constructor to recreate the model:
+   * @example <caption>Using the model blueprint</caption>
+   * const twin = new Model(model.blueprint, fetchOptions)
+   * @returns {{url: string, hints: string[]}}
+   */
+  get blueprint () {
+    return {id: this._id, url: this._request.url, hints: this._hints}
+  }
+
   hasHint (name) {
     return this._hints.includes(name)
   }
@@ -65,18 +76,6 @@ class Model {
   equals (model) {
     if (!model) return false
     return this === model || this.id === model.id
-  }
-
-  /**
-   * Get an object blueprint of the Model, which can be added to the history state. You can pass it to the
-   * options parameter in the constructor to recreate the model:
-   * @example <caption>Using the model blueprint</caption>
-   * const blueprint = model.getBlueprint()
-   * const twin = new Model(blueprint, fetchOptions)
-   * @returns {{url: string, hints: string[]}}
-   */
-  getBlueprint () {
-    return {id: this._id, url: this._request.url, hints: this._hints}
   }
 
 }

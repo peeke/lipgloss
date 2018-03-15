@@ -6,6 +6,14 @@ import attributes from './Attributes'
 
 const SUPPORTED = 'pushState' in history
 
+const errorNoTargetForView = name => {
+  throw new Error(
+    `Not able to determine where [${
+      attributes.dict.view
+    }='${name}'] should be inserted.`
+  )
+}
+
 /**
  * @class Controller
  * @classdesc Handles updating the views on the page with new models
@@ -32,15 +40,18 @@ class Controller {
 
     attributes.assign(this._options.attributes)
 
-    const url = this._options.sanitizeUrl(window.location.href)
+    // Setup initial history state (replaceState)
     this._model = new Model(
-      { url, hints: this._options.defaultHints },
+      { 
+        url: this._options.sanitizeUrl(window.location.href), 
+        hints: this._options.defaultHints 
+      },
       this._options.fetch
     )
 
     this._addHistoryEntry(this._model, true)
-    this._bindEvents()
 
+    this._bindEvents()
     this.initializeContext(document)
   }
 
@@ -72,7 +83,7 @@ class Controller {
    * Return all the views contained in the current document
    * @returns {View[]} - An array of View instances
    */
-  get views() {
+  getViews() {
     return Array.from(
       document.querySelectorAll(`[${attributes.dict.view}]`)
     ).map(element => this._viewsMap.get(element))
@@ -149,30 +160,12 @@ class Controller {
    * @private
    */
   _throwOnUnknownViews(doc) {
-    const message = name =>
-      `Not able to determine where [${
-        attributes.dict.view
-      }='${name}'] should be inserted.`
-
+    const views = this.getViews()
+ 
     Array.from(doc.querySelectorAll(`[${attributes.dict.view}]`))
       .map(viewElement => viewElement.getAttribute(attributes.dict.view))
-      .filter(name => !this.views.some(view => view.name === name))
-      .forEach(name => {
-        throw new Error(message(name))
-      })
-  }
-
-  /**
-   * Checks whether a url is equal to the current url (after sanitizing)
-   * @param {string} url - The url to compare to the current url
-   * @returns {boolean}
-   * @private
-   */
-  _isCurrentUrl(url) {
-    return (
-      this._options.sanitizeUrl(url) ===
-      this._options.sanitizeUrl(window.location.href)
-    )
+      .filter(name => !views.some(view => view.name === name))
+      .forEach(errorNoTargetForView)
   }
 
   /**
@@ -265,18 +258,17 @@ class Controller {
    * @private
    */
   async _updatePage(model) {
-    window.dispatchEvent(new CustomEvent('pagewillupdate', { 
-      detail: model.getBlueprint() 
-    }))
-    this._model = model
+    
     try {
-      const views = this.views
+      window.dispatchEvent(new CustomEvent('pagewillupdate', { detail: model.blueprint }))
+      
+      this._model = model
+      const views = this.getViews()
+
       views.forEach(view => view.setModel(model))
 
       const done = Promise.all(
-        views
-          .map(view => view.transition)
-          .map(transition => transition.didComplete)
+        views.map(view => view.transition.didComplete)
       )
 
       const doc = await model.doc
@@ -284,8 +276,8 @@ class Controller {
       this._options.updateDocument(doc)
 
       await done
-
       window.dispatchEvent(new CustomEvent('pagedidupdate'))
+
     } catch (err) {
       console.error(err)
       window.location.href = model.url
@@ -302,7 +294,7 @@ class Controller {
     const state = {
       title: document.title,
       url: model.url,
-      model: model.getBlueprint()
+      model: model.blueprint
     }
 
     const method = replaceEntry ? 'replaceState' : 'pushState'
