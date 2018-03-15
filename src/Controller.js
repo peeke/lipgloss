@@ -265,7 +265,9 @@ class Controller {
    * @private
    */
   async _updatePage(model) {
-    window.dispatchEvent(new CustomEvent('pagewillupdate'))
+    window.dispatchEvent(new CustomEvent('pagewillupdate', { 
+      detail: model.getBlueprint() 
+    }))
     this._model = model
     try {
       const views = this.views

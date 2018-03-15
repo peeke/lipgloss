@@ -1089,7 +1089,9 @@ var Controller = function () {
     value: _async(function (model) {
       var _this6 = this;
 
-      window.dispatchEvent(new CustomEvent('pagewillupdate'));
+      window.dispatchEvent(new CustomEvent('pagewillupdate', {
+        detail: model.getBlueprint()
+      }));
       _this6._model = model;
       return _continueIgnored(_catch(function () {
         var views = _this6.views;
