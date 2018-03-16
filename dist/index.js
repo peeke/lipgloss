@@ -401,9 +401,9 @@ var Model = function () {
 
 function _awaitIgnored(value, direct) {
   if (!direct) {
-    return Promise.resolve(value).then(_empty$1);
+    return Promise.resolve(value).then(_empty);
   }
-}function _empty$1() {}var _async$1 = function () {
+}function _empty() {}var _async$1 = function () {
   try {
     if (isNaN.apply(null, {})) {
       return function (f) {
@@ -677,11 +677,7 @@ var View = function () {
   return View;
 }();
 
-function _continueIgnored(value) {
-  if (value && value.then) {
-    return value.then(_empty);
-  }
-}function _empty() {}function _catch(body, recover) {
+function _catch(body, recover) {
   try {
     var result = body();
   } catch (e) {
@@ -759,7 +755,9 @@ var Controller = function () {
 
       this._initialized = true;
       this._options = Object.assign(Controller.options, options);
-      this._viewsMap = new WeakMap();attributes.assign(this._options.attributes);
+      this._viewsMap = new WeakMap();
+
+      attributes.assign(this._options.attributes);
 
       // Setup initial history state (replaceState)
       this._model = new Model({
@@ -911,7 +909,13 @@ var Controller = function () {
       var url = _this4._options.sanitizeUrl(e.currentTarget.href);
       var viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink);
       var hints = viewLink ? viewLink.split(',') : _this4._options.defaultHints;
-      _this4.openUrl(url, hints);
+
+      try {
+        _this4.openUrl(url, hints);
+      } catch (err) {
+        console.error(err);
+        window.location.href = model.url;
+      }
     })
 
     /**
@@ -997,8 +1001,8 @@ var Controller = function () {
     key: '_onPopState',
     value: function _onPopState(e) {
       try {
-        var model = new Model(e.state.model, this._options.fetch);
-        this._updatePage(model);
+        var _model = new Model(e.state.model, this._options.fetch);
+        this._updatePage(_model);
       } catch (err) {}
     }
 
@@ -1014,7 +1018,7 @@ var Controller = function () {
     value: _async(function (model) {
       var _this6 = this;
 
-      return _continueIgnored(_catch(function () {
+      return _catch(function () {
         window.dispatchEvent(new CustomEvent('pagewillupdate', { detail: model.blueprint }));
 
         _this6._model = model;
@@ -1037,9 +1041,8 @@ var Controller = function () {
           });
         });
       }, function (err) {
-        console.error(err);
-        window.location.href = model.url;
-      }));
+        throw err;
+      });
     })
 
     /**

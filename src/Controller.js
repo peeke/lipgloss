@@ -179,7 +179,13 @@ class Controller {
     const url = this._options.sanitizeUrl(e.currentTarget.href)
     const viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink)
     const hints = viewLink ? viewLink.split(',') : this._options.defaultHints
-    this.openUrl(url, hints)
+
+    try {
+      this.openUrl(url, hints)
+    } catch(err) {
+      console.error(err)
+      window.location.href = model.url
+    }
   }
 
   /**
@@ -282,8 +288,7 @@ class Controller {
       await done
       window.dispatchEvent(new CustomEvent('pagedidupdate'))
     } catch (err) {
-      console.error(err)
-      window.location.href = model.url
+      throw err
     }
   }
 
