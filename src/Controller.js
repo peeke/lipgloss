@@ -42,9 +42,9 @@ class Controller {
 
     // Setup initial history state (replaceState)
     this._model = new Model(
-      { 
-        url: this._options.sanitizeUrl(window.location.href), 
-        hints: this._options.defaultHints 
+      {
+        url: this._options.sanitizeUrl(window.location.href),
+        hints: this._options.defaultHints
       },
       this._options.fetch
     )
@@ -147,9 +147,8 @@ class Controller {
    */
   _buildView(element, model) {
     const name = element.getAttribute(attributes.dict.view)
-    const persist = element.hasAttribute(attributes.dict.persistView)
     const transition = this._options.transitions[name] || Transition
-    return new View(element, { name, transition, persist, model })
+    return new View(element, { name, transition, model })
   }
 
   /**
@@ -161,7 +160,7 @@ class Controller {
    */
   _throwOnUnknownViews(doc) {
     const views = this.getViews()
- 
+
     Array.from(doc.querySelectorAll(`[${attributes.dict.view}]`))
       .map(viewElement => viewElement.getAttribute(attributes.dict.view))
       .filter(name => !views.some(view => view.name === name))
@@ -184,12 +183,16 @@ class Controller {
   }
 
   /**
-   * 
+   *
    * @param {String} url - The url to open.
    * @param {Array<String>|String} hints - The views to update. Can be either a string or an array with multiple strings.
    * @param {Object} fetchOptions - The options to pass to fetch().
    */
-  openUrl(url, hints = this._options.defaultHints, fetchOptions = this._options.fetch) {
+  openUrl(
+    url,
+    hints = this._options.defaultHints,
+    fetchOptions = this._options.fetch
+  ) {
     hints = Array.isArray(hints) ? hints : [hints]
     const model = new Model({ url, hints }, fetchOptions)
     this._updatePage(model)
@@ -217,7 +220,9 @@ class Controller {
     const view = ViewOrder.order.find(view => !this._model.equals(view.model))
 
     if (!view) {
-      throw new Error(`Unable to deactivate view ${name}, because there's no view to fall back to.`)
+      throw new Error(
+        `Unable to deactivate view ${name}, because there's no view to fall back to.`
+      )
     }
 
     ViewOrder.delete(this._getViewByName(name))
@@ -258,18 +263,17 @@ class Controller {
    * @private
    */
   async _updatePage(model) {
-    
     try {
-      window.dispatchEvent(new CustomEvent('pagewillupdate', { detail: model.blueprint }))
-      
+      window.dispatchEvent(
+        new CustomEvent('pagewillupdate', { detail: model.blueprint })
+      )
+
       this._model = model
       const views = this.getViews()
 
       views.forEach(view => view.updateModel(model))
 
-      const done = Promise.all(
-        views.map(view => view.transition.didComplete)
-      )
+      const done = Promise.all(views.map(view => view.transition.didComplete))
 
       const doc = await model.doc
       this._throwOnUnknownViews(doc)
@@ -277,7 +281,6 @@ class Controller {
 
       await done
       window.dispatchEvent(new CustomEvent('pagedidupdate'))
-
     } catch (err) {
       console.error(err)
       window.location.href = model.url

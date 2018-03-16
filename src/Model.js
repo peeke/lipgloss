@@ -7,7 +7,6 @@ let modelId = 0
  * @classdesc The Model contains all the data needed by a View to update.
  */
 class Model {
-
   /**
    * Initialize a new Model
    * @param {object} options - The configuration for the Model
@@ -15,14 +14,14 @@ class Model {
    * @param {array} options.hints=string[] - The views expected to be present on the requested page
    * @param {object} fetchOptions = The options used to fetch the url
    */
-  constructor (options, fetchOptions) {
+  constructor(options, fetchOptions) {
     this._request = new Request(options.url, fetchOptions)
     this._hints = options.hints || []
     this._doc = null
-    this._id = options.id || modelId++;
+    this._id = options.id || modelId++
   }
 
-  get id () {
+  get id() {
     return this._id
   }
 
@@ -30,7 +29,7 @@ class Model {
    * @description The url used to fetch the new document
    * @returns {string}
    */
-  get url () {
+  get url() {
     return this._request.url
   }
 
@@ -38,10 +37,10 @@ class Model {
    * @description Gets the loaded document (lazily)
    * @returns {Promise.<Element>} - A promise containing the new document
    */
-  get doc () {
+  get doc() {
     if (!this._doc) {
       this._doc = fetch(this._request)
-        .then(response => response.ok ? response : Promise.reject())
+        .then(response => (response.ok ? response : Promise.reject()))
         .then(response => response.text())
         .then(html => new DOMParser().parseFromString(html, 'text/html'))
     }
@@ -55,19 +54,18 @@ class Model {
    * const twin = new Model(model.blueprint, fetchOptions)
    * @returns {{url: string, hints: string[]}}
    */
-  get blueprint () {
-    return {id: this._id, url: this._request.url, hints: this._hints}
+  get blueprint() {
+    return { id: this._id, url: this._request.url, hints: this._hints }
   }
 
-  hasHint (name) {
+  hasHint(name) {
     return this._hints.includes(name)
   }
 
-  equals (model) {
+  equals(model) {
     if (!model) return false
     return this === model || this.id === model.id
   }
-
 }
 
 export default Model

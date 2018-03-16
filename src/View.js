@@ -36,7 +36,7 @@ class View {
       throw new Error('Provided transition is not an instance of Transition')
     }
 
-    ViewOrder.push(this)
+    this.active && ViewOrder.push(this)
   }
 
   /**
@@ -87,9 +87,9 @@ class View {
     const value = document.body.getAttribute(attributes.dict.viewsLoading) || ''
     const tokenList = new Set(value.split(' '))
     bool ? tokenList.add(this.name) : tokenList.delete(this.name)
-    
+
     document.body.setAttribute(
-      attributes.dict.viewsLoading, 
+      attributes.dict.viewsLoading,
       Array.from(tokenList).join(' ')
     )
   }
@@ -128,7 +128,6 @@ class View {
    * @param {Model} model
    */
   async updateModel(model) {
-    
     if (model.equals(this.model)) return
 
     // Take a leap of faith and activate the view based on a hint from the user
@@ -155,15 +154,16 @@ class View {
     this.loading = true
     model.doc.then(() => (this.loading = false))
 
-    this.active && await this._exit()
+    this.active && (await this._exit())
     this.loading && this._transition.loading()
 
     const doc = await model.doc
     const node = doc.querySelector(this._selector)
     if (!node) errorHintedAtButNotFound(this.name)
 
+    const done = this._enter(node, doc)
     this.active = true
-    await this._enter(node, doc)
+    await done
   }
 
   /**
@@ -172,8 +172,9 @@ class View {
    */
   async _deactivate() {
     if (!this.active) return
+    const done = this._exit()
     this.active = false
-    await this._exit()
+    await done
   }
 
   async _enter(node, doc) {

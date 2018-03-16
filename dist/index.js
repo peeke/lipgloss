@@ -86,22 +86,23 @@ var ViewOrder = function () {
   }
 
   createClass(ViewOrder, [{
-    key: "push",
+    key: 'push',
     value: function push(view) {
       this._order = [view].concat(toConsumableArray(this._order.filter(function (v) {
         return view.name !== v.name;
       })));
     }
   }, {
-    key: "delete",
+    key: 'delete',
     value: function _delete(view) {
       this._order = this._order.filter(function (v) {
         return view.name !== v.name;
       });
     }
   }, {
-    key: "order",
+    key: 'order',
     get: function get$$1() {
+      console.log('order: ', this._order);
       return this._order;
     }
   }]);
@@ -317,7 +318,6 @@ var modelId = 0;
  */
 
 var Model = function () {
-
   /**
    * Initialize a new Model
    * @param {object} options - The configuration for the Model
@@ -465,7 +465,7 @@ var View = function () {
       throw new Error('Provided transition is not an instance of Transition');
     }
 
-    ViewOrder$1.push(this);
+    this.active && ViewOrder$1.push(this);
   }
 
   /**
@@ -531,8 +531,9 @@ var View = function () {
           var node = doc.querySelector(_this2._selector);
           if (!node) errorHintedAtButNotFound(_this2.name);
 
+          var done = _this2._enter(node, doc);
           _this2.active = true;
-          return _awaitIgnored(_this2._enter(node, doc));
+          return _awaitIgnored(done);
         });
       }, !_this2$active);
     })
@@ -548,8 +549,9 @@ var View = function () {
       var _this3 = this;
 
       if (!_this3.active) return;
+      var done = _this3._exit();
       _this3.active = false;
-      return _awaitIgnored(_this3._exit());
+      return _awaitIgnored(done);
     })
   }, {
     key: '_enter',
@@ -866,9 +868,8 @@ var Controller = function () {
     key: '_buildView',
     value: function _buildView(element, model) {
       var name = element.getAttribute(attributes.dict.view);
-      var persist = element.hasAttribute(attributes.dict.persistView);
       var transition = this._options.transitions[name] || Transition;
-      return new View(element, { name: name, transition: transition, persist: persist, model: model });
+      return new View(element, { name: name, transition: transition, model: model });
     }
 
     /**
@@ -914,7 +915,7 @@ var Controller = function () {
     })
 
     /**
-     * 
+     *
      * @param {String} url - The url to open.
      * @param {Array<String>|String} hints - The views to update. Can be either a string or an array with multiple strings.
      * @param {Object} fetchOptions - The options to pass to fetch().

@@ -528,8 +528,9 @@ var View = function () {
           var node = doc.querySelector(_this2._selector);
           if (!node) errorHintedAtButNotFound(_this2.name);
 
+          var done = _this2._enter(node, doc);
           _this2.active = true;
-          return _awaitIgnored(_this2._enter(node, doc));
+          return _awaitIgnored(done);
         });
       }, !_this2$active);
     })
@@ -545,8 +546,9 @@ var View = function () {
       var _this3 = this;
 
       if (!_this3.active) return;
+      var done = _this3._exit();
       _this3.active = false;
-      return _awaitIgnored(_this3._exit());
+      return _awaitIgnored(done);
     })
   }, {
     key: '_enter',
@@ -863,9 +865,8 @@ var Controller = function () {
     key: '_buildView',
     value: function _buildView(element, model) {
       var name = element.getAttribute(attributes.dict.view);
-      var persist = element.hasAttribute(attributes.dict.persistView);
       var transition = this._options.transitions[name] || Transition;
-      return new View(element, { name: name, transition: transition, persist: persist, model: model });
+      return new View(element, { name: name, transition: transition, model: model });
     }
 
     /**

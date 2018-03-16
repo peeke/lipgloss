@@ -1,5 +1,4 @@
 class ViewOrder {
-
   constructor() {
     this._order = []
   }
@@ -13,9 +12,9 @@ class ViewOrder {
   }
 
   get order() {
+    console.log('order: ', this._order)
     return this._order
   }
-
 }
 
 export default new ViewOrder()

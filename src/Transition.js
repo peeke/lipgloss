@@ -79,9 +79,7 @@ class Transition {
       new CustomEvent('viewhtmlwillupdate', eventOptions)
     )
     this._view.innerHTML = newNode.innerHTML
-    this._view.dispatchEvent(
-      new CustomEvent('viewhtmldidupdate', eventOptions)
-    )
+    this._view.dispatchEvent(new CustomEvent('viewhtmldidupdate', eventOptions))
   }
 
   /**
