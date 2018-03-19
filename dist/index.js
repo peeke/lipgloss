@@ -399,11 +399,11 @@ var Model = function () {
   return Model;
 }();
 
-function _awaitIgnored(value, direct) {
+function _awaitIgnored$1(value, direct) {
   if (!direct) {
-    return Promise.resolve(value).then(_empty);
+    return Promise.resolve(value).then(_empty$1);
   }
-}function _empty() {}var _async$1 = function () {
+}function _empty$1() {}var _async$1 = function () {
   try {
     if (isNaN.apply(null, {})) {
       return function (f) {
@@ -533,7 +533,7 @@ var View = function () {
 
           var done = _this2._enter(node, doc);
           _this2.active = true;
-          return _awaitIgnored(done);
+          return _awaitIgnored$1(done);
         });
       }, !_this2$active);
     })
@@ -551,7 +551,7 @@ var View = function () {
       if (!_this3.active) return;
       var done = _this3._exit();
       _this3.active = false;
-      return _awaitIgnored(done);
+      return _awaitIgnored$1(done);
     })
   }, {
     key: '_enter',
@@ -677,19 +677,7 @@ var View = function () {
   return View;
 }();
 
-function _catch(body, recover) {
-  try {
-    var result = body();
-  } catch (e) {
-    try {
-      return recover(e);
-    } catch (e2) {
-      return Promise.reject(e2);
-    }
-  }if (result && result.then) {
-    return result.then(void 0, recover);
-  }return result;
-}function _await(value, then, direct) {
+function _await(value, then, direct) {
   if (direct) {
     return then ? then(value) : value;
   }value = Promise.resolve(value);return then ? value.then(then) : value;
@@ -717,7 +705,11 @@ function _catch(body, recover) {
       }
     };
   };
-}();var SUPPORTED = 'pushState' in history;
+}();function _awaitIgnored(value, direct) {
+  if (!direct) {
+    return Promise.resolve(value).then(_empty);
+  }
+}function _empty() {}var SUPPORTED = 'pushState' in history;
 
 var errorNoTargetForView = function errorNoTargetForView(name) {
   throw new Error('Not able to determine where [' + attributes.dict.view + '=\'' + name + '\'] should be inserted.');
@@ -902,21 +894,17 @@ var Controller = function () {
 
   }, {
     key: '_onLinkClick',
-    value: _async(function (e) {
-      var _this4 = this;
-
+    value: function _onLinkClick(e) {
       e.preventDefault();
-      var url = _this4._options.sanitizeUrl(e.currentTarget.href);
+      var url = this._options.sanitizeUrl(e.currentTarget.href);
       var viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink);
-      var hints = viewLink ? viewLink.split(',') : _this4._options.defaultHints;
+      var hints = viewLink ? viewLink.split(',') : this._options.defaultHints;
 
-      try {
-        _this4.openUrl(url, hints);
-      } catch (err) {
+      this.openUrl(url, hints).catch(function (err) {
         console.error(err);
-        window.location.href = model.url;
-      }
-    })
+        window.location.href = url;
+      });
+    }
 
     /**
      *
@@ -927,15 +915,17 @@ var Controller = function () {
 
   }, {
     key: 'openUrl',
-    value: function openUrl(url) {
-      var hints = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this._options.defaultHints;
-      var fetchOptions = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this._options.fetch;
+    value: _async(function (url, hints, fetchOptions) {
+      var _this4 = this;
 
+      hints = hints || _this4._options.defaultHints;
       hints = Array.isArray(hints) ? hints : [hints];
+      fetchOptions = fetchOptions || _this4._options.fetch;
+
       var model = new Model({ url: url, hints: hints }, fetchOptions);
-      this._updatePage(model);
-      this._addHistoryEntry(model);
-    }
+      _this4._addHistoryEntry(model);
+      return _awaitIgnored(_this4._updatePage(model));
+    })
 
     /**
      * Handles a click on an element with a [data-deactivate-view="viewname"] attribute.
@@ -960,7 +950,7 @@ var Controller = function () {
 
   }, {
     key: 'deactivateView',
-    value: function deactivateView(name) {
+    value: _async(function (name) {
       var _this5 = this;
 
       var view = ViewOrder$1.order.find(function (view) {
@@ -971,11 +961,11 @@ var Controller = function () {
         throw new Error('Unable to deactivate view ' + name + ', because there\'s no view to fall back to.');
       }
 
-      ViewOrder$1.delete(this._getViewByName(name));
+      ViewOrder$1.delete(_this5._getViewByName(name));
 
-      this._updatePage(view.model);
-      this._addHistoryEntry(view.model);
-    }
+      _this5._addHistoryEntry(view.model);
+      return _awaitIgnored(_this5._updatePage(view.model));
+    })
 
     /**
      * Retreive a Model from a View
@@ -1000,10 +990,9 @@ var Controller = function () {
   }, {
     key: '_onPopState',
     value: function _onPopState(e) {
-      try {
-        var _model = new Model(e.state.model, this._options.fetch);
-        this._updatePage(_model);
-      } catch (err) {}
+      if (!e.state || !e.state.model) return;
+      var model = new Model(e.state.model, this._options.fetch);
+      this._updatePage(model);
     }
 
     /**
@@ -1018,30 +1007,26 @@ var Controller = function () {
     value: _async(function (model) {
       var _this6 = this;
 
-      return _catch(function () {
-        window.dispatchEvent(new CustomEvent('pagewillupdate', { detail: model.blueprint }));
+      window.dispatchEvent(new CustomEvent('pagewillupdate', { detail: model.blueprint }));
 
-        _this6._model = model;
-        var views = _this6.getViews();
+      _this6._model = model;
+      var views = _this6.getViews();
 
-        views.forEach(function (view) {
-          return view.updateModel(model);
+      views.forEach(function (view) {
+        return view.updateModel(model);
+      });
+
+      var done = Promise.all(views.map(function (view) {
+        return view.transition.didComplete;
+      }));
+
+      return _await(model.doc, function (doc) {
+        _this6._throwOnUnknownViews(doc);
+        _this6._options.updateDocument(doc);
+
+        return _await(done, function () {
+          window.dispatchEvent(new CustomEvent('pagedidupdate'));
         });
-
-        var done = Promise.all(views.map(function (view) {
-          return view.transition.didComplete;
-        }));
-
-        return _await(model.doc, function (doc) {
-          _this6._throwOnUnknownViews(doc);
-          _this6._options.updateDocument(doc);
-
-          return _await(done, function () {
-            window.dispatchEvent(new CustomEvent('pagedidupdate'));
-          });
-        });
-      }, function (err) {
-        throw err;
       });
     })
 

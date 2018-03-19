@@ -174,18 +174,16 @@ class Controller {
    * @param {Event} e - Click event
    * @private
    */
-  async _onLinkClick(e) {
+  _onLinkClick(e) {
     e.preventDefault()
     const url = this._options.sanitizeUrl(e.currentTarget.href)
     const viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink)
     const hints = viewLink ? viewLink.split(',') : this._options.defaultHints
 
-    try {
-      this.openUrl(url, hints)
-    } catch(err) {
+    this.openUrl(url, hints).catch(err => {
       console.error(err)
-      window.location.href = model.url
-    }
+      window.location.href = url
+    })
   }
 
   /**
@@ -194,15 +192,14 @@ class Controller {
    * @param {Array<String>|String} hints - The views to update. Can be either a string or an array with multiple strings.
    * @param {Object} fetchOptions - The options to pass to fetch().
    */
-  openUrl(
-    url,
-    hints = this._options.defaultHints,
-    fetchOptions = this._options.fetch
-  ) {
+  async openUrl(url, hints, fetchOptions) {
+    hints = hints || this._options.defaultHints
     hints = Array.isArray(hints) ? hints : [hints]
+    fetchOptions = fetchOptions || this._options.fetch
+
     const model = new Model({ url, hints }, fetchOptions)
-    this._updatePage(model)
     this._addHistoryEntry(model)
+    await this._updatePage(model)
   }
 
   /**
@@ -222,7 +219,7 @@ class Controller {
    * Deactivate a view by name
    * @param {string} name - Name of the view to activate
    */
-  deactivateView(name) {
+  async deactivateView(name) {
     const view = ViewOrder.order.find(view => !this._model.equals(view.model))
 
     if (!view) {
@@ -233,8 +230,8 @@ class Controller {
 
     ViewOrder.delete(this._getViewByName(name))
 
-    this._updatePage(view.model)
     this._addHistoryEntry(view.model)
+    await this._updatePage(view.model)
   }
 
   /**
@@ -256,10 +253,9 @@ class Controller {
    * @private
    */
   _onPopState(e) {
-    try {
-      const model = new Model(e.state.model, this._options.fetch)
-      this._updatePage(model)
-    } catch (err) {}
+    if (!e.state || !e.state.model) return
+    const model = new Model(e.state.model, this._options.fetch)
+    this._updatePage(model)
   }
 
   /**
@@ -269,27 +265,25 @@ class Controller {
    * @private
    */
   async _updatePage(model) {
-    try {
-      window.dispatchEvent(
-        new CustomEvent('pagewillupdate', { detail: model.blueprint })
-      )
 
-      this._model = model
-      const views = this.getViews()
+    window.dispatchEvent(
+      new CustomEvent('pagewillupdate', { detail: model.blueprint })
+    )
 
-      views.forEach(view => view.updateModel(model))
+    this._model = model
+    const views = this.getViews()
 
-      const done = Promise.all(views.map(view => view.transition.didComplete))
+    views.forEach(view => view.updateModel(model))
 
-      const doc = await model.doc
-      this._throwOnUnknownViews(doc)
-      this._options.updateDocument(doc)
+    const done = Promise.all(views.map(view => view.transition.didComplete))
 
-      await done
-      window.dispatchEvent(new CustomEvent('pagedidupdate'))
-    } catch (err) {
-      throw err
-    }
+    const doc = await model.doc
+    this._throwOnUnknownViews(doc)
+    this._options.updateDocument(doc)
+
+    await done
+    window.dispatchEvent(new CustomEvent('pagedidupdate'))
+
   }
 
   /**

@@ -126,22 +126,23 @@ var ViewOrder = function () {
   }
 
   createClass(ViewOrder, [{
-    key: "push",
+    key: 'push',
     value: function push(view) {
       this._order = [view].concat(toConsumableArray(this._order.filter(function (v) {
         return view.name !== v.name;
       })));
     }
   }, {
-    key: "delete",
+    key: 'delete',
     value: function _delete(view) {
       this._order = this._order.filter(function (v) {
         return view.name !== v.name;
       });
     }
   }, {
-    key: "order",
+    key: 'order',
     get: function get$$1() {
+      console.log('order: ', this._order);
       return this._order;
     }
   }]);
@@ -357,7 +358,6 @@ var modelId = 0;
  */
 
 var Model = function () {
-
   /**
    * Initialize a new Model
    * @param {object} options - The configuration for the Model
@@ -439,7 +439,7 @@ var Model = function () {
   return Model;
 }();
 
-function _awaitIgnored(value, direct) {
+function _awaitIgnored$1(value, direct) {
   if (!direct) {
     return Promise.resolve(value).then(_empty$1);
   }
@@ -505,7 +505,7 @@ var View = function () {
       throw new Error('Provided transition is not an instance of Transition');
     }
 
-    ViewOrder$1.push(this);
+    this.active && ViewOrder$1.push(this);
   }
 
   /**
@@ -573,7 +573,7 @@ var View = function () {
 
           var done = _this2._enter(node, doc);
           _this2.active = true;
-          return _awaitIgnored(done);
+          return _awaitIgnored$1(done);
         });
       }, !_this2$active);
     })
@@ -591,7 +591,7 @@ var View = function () {
       if (!_this3.active) return;
       var done = _this3._exit();
       _this3.active = false;
-      return _awaitIgnored(done);
+      return _awaitIgnored$1(done);
     })
   }, {
     key: '_enter',
@@ -717,23 +717,7 @@ var View = function () {
   return View;
 }();
 
-function _continueIgnored(value) {
-  if (value && value.then) {
-    return value.then(_empty);
-  }
-}function _empty() {}function _catch(body, recover) {
-  try {
-    var result = body();
-  } catch (e) {
-    try {
-      return recover(e);
-    } catch (e2) {
-      return Promise.reject(e2);
-    }
-  }if (result && result.then) {
-    return result.then(void 0, recover);
-  }return result;
-}function _await(value, then, direct) {
+function _await(value, then, direct) {
   if (direct) {
     return then ? then(value) : value;
   }value = Promise.resolve(value);return then ? value.then(then) : value;
@@ -761,7 +745,11 @@ function _continueIgnored(value) {
       }
     };
   };
-}();var SUPPORTED = 'pushState' in history;
+}();function _awaitIgnored(value, direct) {
+  if (!direct) {
+    return Promise.resolve(value).then(_empty);
+  }
+}function _empty() {}var SUPPORTED = 'pushState' in history;
 
 var errorNoTargetForView = function errorNoTargetForView(name) {
   throw new Error('Not able to determine where [' + attributes.dict.view + '=\'' + name + '\'] should be inserted.');
@@ -799,7 +787,9 @@ var Controller = function () {
 
       this._initialized = true;
       this._options = Object.assign(Controller.options, options);
-      this._viewsMap = new WeakMap();attributes.assign(this._options.attributes);
+      this._viewsMap = new WeakMap();
+
+      attributes.assign(this._options.attributes);
 
       // Setup initial history state (replaceState)
       this._model = new Model({
@@ -944,18 +934,20 @@ var Controller = function () {
 
   }, {
     key: '_onLinkClick',
-    value: _async(function (e) {
-      var _this4 = this;
-
+    value: function _onLinkClick(e) {
       e.preventDefault();
-      var url = _this4._options.sanitizeUrl(e.currentTarget.href);
+      var url = this._options.sanitizeUrl(e.currentTarget.href);
       var viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink);
-      var hints = viewLink ? viewLink.split(',') : _this4._options.defaultHints;
-      _this4.openUrl(url, hints);
-    })
+      var hints = viewLink ? viewLink.split(',') : this._options.defaultHints;
+
+      this.openUrl(url, hints).catch(function (err) {
+        console.error(err);
+        window.location.href = url;
+      });
+    }
 
     /**
-     * 
+     *
      * @param {String} url - The url to open.
      * @param {Array<String>|String} hints - The views to update. Can be either a string or an array with multiple strings.
      * @param {Object} fetchOptions - The options to pass to fetch().
@@ -963,15 +955,17 @@ var Controller = function () {
 
   }, {
     key: 'openUrl',
-    value: function openUrl(url) {
-      var hints = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this._options.defaultHints;
-      var fetchOptions = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this._options.fetch;
+    value: _async(function (url, hints, fetchOptions) {
+      var _this4 = this;
 
+      hints = hints || _this4._options.defaultHints;
       hints = Array.isArray(hints) ? hints : [hints];
+      fetchOptions = fetchOptions || _this4._options.fetch;
+
       var model = new Model({ url: url, hints: hints }, fetchOptions);
-      this._updatePage(model);
-      this._addHistoryEntry(model);
-    }
+      _this4._addHistoryEntry(model);
+      return _awaitIgnored(_this4._updatePage(model));
+    })
 
     /**
      * Handles a click on an element with a [data-deactivate-view="viewname"] attribute.
@@ -996,7 +990,7 @@ var Controller = function () {
 
   }, {
     key: 'deactivateView',
-    value: function deactivateView(name) {
+    value: _async(function (name) {
       var _this5 = this;
 
       var view = ViewOrder$1.order.find(function (view) {
@@ -1007,11 +1001,11 @@ var Controller = function () {
         throw new Error('Unable to deactivate view ' + name + ', because there\'s no view to fall back to.');
       }
 
-      ViewOrder$1.delete(this._getViewByName(name));
+      ViewOrder$1.delete(_this5._getViewByName(name));
 
-      this._updatePage(view.model);
-      this._addHistoryEntry(view.model);
-    }
+      _this5._addHistoryEntry(view.model);
+      return _awaitIgnored(_this5._updatePage(view.model));
+    })
 
     /**
      * Retreive a Model from a View
@@ -1036,10 +1030,9 @@ var Controller = function () {
   }, {
     key: '_onPopState',
     value: function _onPopState(e) {
-      try {
-        var model = new Model(e.state.model, this._options.fetch);
-        this._updatePage(model);
-      } catch (err) {}
+      if (!e.state || !e.state.model) return;
+      var model = new Model(e.state.model, this._options.fetch);
+      this._updatePage(model);
     }
 
     /**
@@ -1054,32 +1047,27 @@ var Controller = function () {
     value: _async(function (model) {
       var _this6 = this;
 
-      return _continueIgnored(_catch(function () {
-        window.dispatchEvent(new CustomEvent('pagewillupdate', { detail: model.blueprint }));
+      window.dispatchEvent(new CustomEvent('pagewillupdate', { detail: model.blueprint }));
 
-        _this6._model = model;
-        var views = _this6.getViews();
+      _this6._model = model;
+      var views = _this6.getViews();
 
-        views.forEach(function (view) {
-          return view.updateModel(model);
-        });
+      views.forEach(function (view) {
+        return view.updateModel(model);
+      });
 
-        var done = Promise.all(views.map(function (view) {
-          return view.transition.didComplete;
-        }));
-
-        return _await(model.doc, function (doc) {
-          _this6._throwOnUnknownViews(doc);
-          _this6._options.updateDocument(doc);
-
-          return _await(done, function () {
-            window.dispatchEvent(new CustomEvent('pagedidupdate'));
-          });
-        });
-      }, function (err) {
-        console.error(err);
-        window.location.href = model.url;
+      var done = Promise.all(views.map(function (view) {
+        return view.transition.didComplete;
       }));
+
+      return _await(model.doc, function (doc) {
+        _this6._throwOnUnknownViews(doc);
+        _this6._options.updateDocument(doc);
+
+        return _await(done, function () {
+          window.dispatchEvent(new CustomEvent('pagedidupdate'));
+        });
+      });
     })
 
     /**
@@ -1157,14 +1145,11 @@ var _async$3 = function () {
       }
     };
   };
-}();function _awaitIgnored$1(value, direct) {
+}();function _awaitIgnored$2(value, direct) {
   if (!direct) {
     return Promise.resolve(value).then(_empty$2);
   }
-}function _empty$2() {}/**
- * Extended Transition
- */
-var AnimationTransition = function (_Transition) {
+}function _empty$2() {}var AnimationTransition = function (_Transition) {
   inherits(AnimationTransition, _Transition);
 
   function AnimationTransition() {
@@ -1183,7 +1168,7 @@ var AnimationTransition = function (_Transition) {
       var _this2 = this;
 
       get(AnimationTransition.prototype.__proto__ || Object.getPrototypeOf(AnimationTransition.prototype), 'exit', _this2).call(_this2);
-      return _awaitIgnored$1(new Promise(function (resolve) {
+      return _awaitIgnored$2(new Promise(function (resolve) {
         var animationEnd = function animationEnd(e) {
           if (e.target !== _this2._view) return;
           _this2._view.removeEventListener('animationend', animationEnd);
@@ -1204,7 +1189,7 @@ var AnimationTransition = function (_Transition) {
       var _this3 = this;
 
       get(AnimationTransition.prototype.__proto__ || Object.getPrototypeOf(AnimationTransition.prototype), 'enter', _this3).call(_this3, node);
-      return _awaitIgnored$1(new Promise(function (resolve) {
+      return _awaitIgnored$2(new Promise(function (resolve) {
         var animationEnd = function animationEnd(e) {
           if (e.target !== _this3._view) return;
           _this3._view.removeEventListener('animationend', animationEnd);
