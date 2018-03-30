@@ -255,7 +255,10 @@ class Controller {
   _onPopState(e) {
     if (!e.state || !e.state.model) return
     const model = new Model(e.state.model, this._options.fetch)
-    this._updatePage(model)
+    this._updatePage(model).catch(err => {
+      console.error(err)
+      window.location.href = model.url
+    })
   }
 
   /**

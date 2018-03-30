@@ -1149,7 +1149,10 @@ var _async$3 = function () {
   if (!direct) {
     return Promise.resolve(value).then(_empty$2);
   }
-}function _empty$2() {}var AnimationTransition = function (_Transition) {
+}function _empty$2() {}/**
+ * Extended Transition
+ */
+var AnimationTransition = function (_Transition) {
   inherits(AnimationTransition, _Transition);
 
   function AnimationTransition() {

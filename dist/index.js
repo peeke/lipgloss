@@ -992,7 +992,10 @@ var Controller = function () {
     value: function _onPopState(e) {
       if (!e.state || !e.state.model) return;
       var model = new Model(e.state.model, this._options.fetch);
-      this._updatePage(model);
+      this._updatePage(model).catch(function (err) {
+        console.error(err);
+        window.location.href = model.url;
+      });
     }
 
     /**
