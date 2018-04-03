@@ -1,6 +1,7 @@
 import attributes from './Attributes'
 
 const reflow = element => element.offsetHeight
+const eventOptions = { bubbles: true, cancelable: true }
 
 /**
  * @class Transition
@@ -23,7 +24,7 @@ class Transition {
    */
   constructor(view) {
     this._view = view
-    this.didExit = this.didEnter = this.didComplete = Promise.resolve()
+    this.willExit = this.willEnter = this.didExit = this.didEnter = this.didComplete = Promise.resolve()
   }
 
   get view() {
@@ -31,6 +32,8 @@ class Transition {
   }
 
   start() {
+    this.willExit = new Promise(resolve => (this.exitStart = resolve))
+    this.willEnter = new Promise(resolve => (this.enterStart = resolve))
     this.didExit = new Promise(resolve => (this.exitDone = resolve))
     this.didEnter = new Promise(resolve => (this.enterDone = resolve))
     this.didComplete = Promise.all([this.didExit, this.didEnter])
@@ -74,7 +77,6 @@ class Transition {
    * @param {String} newNode - The new views node
    */
   updateHtml(newNode) {
-    const eventOptions = { bubbles: true, cancelable: true }
     this._view.dispatchEvent(
       new CustomEvent('viewhtmlwillupdate', eventOptions)
     )
@@ -86,7 +88,9 @@ class Transition {
    * Cleans up after transitions have completed
    */
   done() {
+    this.exitStart()
     this.exitDone()
+    this.enterStart()
     this.enterDone()
     this._view.removeAttribute(attributes.dict.transition)
     reflow(this._view)

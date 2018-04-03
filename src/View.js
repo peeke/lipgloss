@@ -3,10 +3,13 @@ import Transition from './Transition'
 import Model from './Model'
 import attributes from './Attributes'
 
-const errorHintedAtButNotFound = name => {
+const unique = arr => Array.from(new Set(arr))
+const eventOptions = { bubbles: true, cancelable: true }
+const errorHintedAtButNotFound = name => err => {
   console.warn(
     `Hint '${name}' was given, but not found in the loaded document.`
   )
+  throw err
 }
 
 /**
@@ -28,15 +31,15 @@ class View {
 
     this.active = !!this._element.innerHTML.trim()
 
-    this._model = this._options.model
+    this._activeModel = this._options.model
     this._selector = `[${attributes.dict.view}="${this._options.name}"]`
     this._transition = new this._options.transition(this._element)
+
+    ViewOrder.push(this)
 
     if (!(this._transition instanceof Transition)) {
       throw new Error('Provided transition is not an instance of Transition')
     }
-
-    this.active && ViewOrder.push(this)
   }
 
   /**
@@ -66,7 +69,6 @@ class View {
   set active(bool) {
     this._active = bool
     this._element.setAttribute(attributes.dict.viewActive, bool)
-    bool ? ViewOrder.push(this) : ViewOrder.delete(this)
   }
 
   /**
@@ -81,16 +83,20 @@ class View {
    * @param {boolean} bool
    */
   set loading(bool) {
-    if (this._isLoading === bool) return
     this._isLoading = bool
+    const loadingViews = document.body.hasAttribute(
+      attributes.dict.viewsLoading
+    )
+      ? document.body.getAttribute(attributes.dict.viewsLoading).split(' ')
+      : []
 
-    const value = document.body.getAttribute(attributes.dict.viewsLoading) || ''
-    const tokenList = new Set(value.split(' '))
-    bool ? tokenList.add(this.name) : tokenList.delete(this.name)
+    const newLoadingViews = bool
+      ? unique([...loadingViews, this._options.name])
+      : loadingViews.filter(name => name !== this._options.name)
 
     document.body.setAttribute(
       attributes.dict.viewsLoading,
-      Array.from(tokenList).join(' ')
+      newLoadingViews.join(' ')
     )
   }
 
@@ -98,14 +104,52 @@ class View {
    * @returns {Model} - The Model currently associated with this view
    */
   get model() {
-    return this._model
+    return this._activeModel
   }
 
-  set model(model) {
-    this._model = model
+  /**
+   * Set the model associated with this view
+   * Has three flows:
+   *   1. The same Model is already set, do nothing
+   *   2. The view is included in the Model, activate
+   *   3. The view is not included in the Model, deactivate
+   * @param {Model} model
+   */
+  async setModel(model) {
+    if (model.equals(this._activeModel)) return
+
     this._transition.start()
-    const action = model ? this._activate(model) : this._deactivate()
-    action.then(() => this._transition.done())
+
+    if (!model) {
+      await this._deactivate()
+      this._transition.done()
+      return
+    }
+
+    const isHintedAt = model.hasHint(this._options.name)
+    const includedInModel =
+      isHintedAt || (await model.includesView(this._options.name))
+
+    if (!includedInModel) {
+      this._transition.done()
+      return
+    }
+
+    // Take a leap of faith and activate the view based on a hint from the user
+    if (isHintedAt) {
+      await this._activate(model).catch(
+        errorHintedAtButNotFound(this._options.name)
+      )
+      this._transition.done()
+      return
+    }
+
+    const doc = await model.doc
+    const node = doc.querySelector(this._selector)
+    const active = node && Boolean(node.innerHTML.trim())
+
+    await (active ? this._activate(model) : this._deactivate())
+    this._transition.done()
   }
 
   /**
@@ -120,31 +164,6 @@ class View {
   }
 
   /**
-   * Set the model associated with this view
-   * Has three flows:
-   *   1. The same Model is already set, do nothing
-   *   2. The view is included in the Model, activate
-   *   3. The view is not included in the Model, deactivate
-   * @param {Model} model
-   */
-  async updateModel(model) {
-    if (model.equals(this.model)) return
-
-    // Take a leap of faith and activate the view based on a hint from the user
-    if (model.hasHint(this._options.name)) {
-      this.model = model
-      return
-    }
-
-    const doc = await model.doc
-    const node = doc.querySelector(this._selector)
-    if (!node) return
-
-    const active = node && Boolean(node.innerHTML.trim())
-    this.model = active ? model : null
-  }
-
-  /**
    * Activate a new Model for this View. The selector will query the retreived document for a node to use.
    * @param {Model} model - The model to update the view with
    * @returns {Promise.<void>} - A promise resolving when the activation of the new Model is complete
@@ -152,18 +171,39 @@ class View {
    */
   async _activate(model) {
     this.loading = true
-    model.doc.then(() => (this.loading = false))
+    model.doc.then(() => {
+      this.loading = false
+    })
 
-    this.active && (await this._exit())
-    this.loading && this._transition.loading()
+    this._transition.exitStart()
+    if (this.active) {
+      this._dispatch('viewwillexit')
+      await this._transition.exit()
+      this._dispatch('viewdidexit')
+    }
+    this._transition.exitDone()
+
+    if (this.loading) {
+      this._transition.loading()
+    }
 
     const doc = await model.doc
     const node = doc.querySelector(this._selector)
-    if (!node) errorHintedAtButNotFound(this.name)
+    const active = node && Boolean(node.innerHTML.trim())
 
-    const done = this._enter(node, doc)
-    this.active = true
-    await done
+    ViewOrder.push(this)
+    this.active = active
+
+    this._transition.enterStart()
+    if (active) {
+      this._dispatch('viewwillenter')
+      await this._transition.enter(node, doc)
+      this._dispatch('viewdidenter')
+      this._activeModel = model
+    } else {
+      this._activeModel = null
+    }
+    this._transition.enterDone()
   }
 
   /**
@@ -171,28 +211,21 @@ class View {
    * @private
    */
   async _deactivate() {
+    ViewOrder.delete(this)
+
     if (!this.active) return
-    const done = this._exit()
     this.active = false
-    await done
-  }
 
-  async _enter(node, doc) {
-    this._dispatch('viewwillenter')
-    await this._transition.enter(node, doc)
-    this._transition.enterDone()
-    this._dispatch('viewdidenter')
-  }
-
-  async _exit() {
+    this._transition.exitStart()
     this._dispatch('viewwillexit')
     await this._transition.exit()
-    this._transition.exitDone()
     this._dispatch('viewdidexit')
+    this._transition.exitDone()
+
+    this._activeModel = null
   }
 
   _dispatch(eventName) {
-    const eventOptions = { bubbles: true, cancelable: true }
     this._element.dispatchEvent(new CustomEvent(eventName, eventOptions))
   }
 }
