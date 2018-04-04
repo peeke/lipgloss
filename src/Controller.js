@@ -221,8 +221,9 @@ class Controller {
   ) {
     hints = Array.isArray(hints) ? hints : [hints]
     const model = new Model({ url, hints }, fetchOptions)
+    const samePage = this._model && this._model.url === model.url
     this._updatePage(model)
-    this._addHistoryEntry(model)
+    this._addHistoryEntry(model, samePage)
   }
 
   /**

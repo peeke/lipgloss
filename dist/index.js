@@ -1039,8 +1039,9 @@ var Controller = function () {
 
       hints = Array.isArray(hints) ? hints : [hints];
       var model = new Model({ url: url, hints: hints }, fetchOptions);
+      var samePage = this._model && this._model.url === model.url;
       this._updatePage(model);
-      this._addHistoryEntry(model);
+      this._addHistoryEntry(model, samePage);
     }
 
     /**
