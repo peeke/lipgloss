@@ -367,6 +367,16 @@ var Model = function () {
     this._hints = options.hints || [];
     this._doc = null;
     this._id = options.id || modelId++;
+
+    window.dispatchEvent(new CustomEvent('modelload'));
+
+    this._response = fetch(this._request).then(function (response) {
+      return response.ok ? response : Promise.reject();
+    });
+
+    this._response.then(function () {
+      return window.dispatchEvent(new CustomEvent('modelloaded'));
+    });
   }
 
   createClass(Model, [{
@@ -437,9 +447,7 @@ var Model = function () {
     key: 'doc',
     get: function get$$1() {
       if (!this._doc) {
-        this._doc = fetch(this._request).then(function (response) {
-          return response.ok ? response : Promise.reject();
-        }).then(function (response) {
+        this._doc = this._response.then(function (response) {
           return response.text();
         }).then(function (html) {
           return new DOMParser().parseFromString(html, 'text/html');

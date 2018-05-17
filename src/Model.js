@@ -20,6 +20,14 @@ class Model {
     this._hints = options.hints || []
     this._doc = null
     this._id = options.id || modelId++;
+    
+    window.dispatchEvent(new CustomEvent('modelload'))
+
+    this._response = fetch(this._request)
+      .then(response => response.ok ? response : Promise.reject())
+
+    this._response
+      .then(() => window.dispatchEvent(new CustomEvent('modelloaded')))
   }
 
   get id () {
@@ -40,8 +48,7 @@ class Model {
    */
   get doc () {
     if (!this._doc) {
-      this._doc = fetch(this._request)
-        .then(response => response.ok ? response : Promise.reject())
+      this._doc = this._response
         .then(response => response.text())
         .then(html => new DOMParser().parseFromString(html, 'text/html'))
     }
