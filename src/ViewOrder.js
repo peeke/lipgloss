@@ -1,5 +1,4 @@
 class ViewOrder {
-
   constructor() {
     this._order = []
   }
@@ -12,10 +11,13 @@ class ViewOrder {
     this._order = this._order.filter(v => view.name !== v.name)
   }
 
+  has(view) {
+    return this._order.includes(view)
+  }
+
   get order() {
     return this._order
   }
-
 }
 
 export default new ViewOrder()

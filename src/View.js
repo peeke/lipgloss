@@ -2,14 +2,13 @@ import ViewOrder from './ViewOrder'
 import Transition from './Transition'
 import Model from './Model'
 import attributes from './Attributes'
+import AttributeList from './AttributeList'
 
-const unique = arr => Array.from(new Set(arr))
 const eventOptions = { bubbles: true, cancelable: true }
-const errorHintedAtButNotFound = name => err => {
-  console.warn(
-    `Hint '${name}' was given, but not found in the loaded document.`
+const errorViewNotFound = name => {
+  return new Error(
+    `View '${name}' activated, but not found in the loaded document (maybe you've provided it as a hint?).`
   )
-  throw err
 }
 
 /**
@@ -29,9 +28,19 @@ class View {
     this._element = element
     this._options = Object.assign(View.options, options)
 
-    this.active = !!this._element.innerHTML.trim()
+    this._loadingList = new AttributeList(
+      document.body,
+      attributes.dict.viewsLoading
+    )
+    this._activeList = new AttributeList(
+      document.body,
+      attributes.dict.viewsActive
+    )
+    this._visibleList = new AttributeList(document.body, 'data-views-visible')
 
-    this._activeModel = this._options.model
+    this.active = this.visible = !!this._element.innerHTML.trim()
+
+    this._model = this._options.model
     this._selector = `[${attributes.dict.view}="${this._options.name}"]`
     this._transition = new this._options.transition(this._element)
 
@@ -69,6 +78,14 @@ class View {
   set active(bool) {
     this._active = bool
     this._element.setAttribute(attributes.dict.viewActive, bool)
+    this._activeList.toggle(this._options.name, bool)
+  }
+
+  set visible(bool) {
+    if (this._visible === bool) return
+    this._visible = bool
+    this._element.setAttribute(attributes.dict.viewActive, bool)
+    this._visibleList.toggle(this._options.name, bool)
   }
 
   /**
@@ -84,27 +101,15 @@ class View {
    */
   set loading(bool) {
     this._isLoading = bool
-    const loadingViews = document.body.hasAttribute(
-      attributes.dict.viewsLoading
-    )
-      ? document.body.getAttribute(attributes.dict.viewsLoading).split(' ')
-      : []
-
-    const newLoadingViews = bool
-      ? unique([...loadingViews, this._options.name])
-      : loadingViews.filter(name => name !== this._options.name)
-
-    document.body.setAttribute(
-      attributes.dict.viewsLoading,
-      newLoadingViews.join(' ')
-    )
+    this._loadingList.toggle(this._options.name, bool)
+    const action = bool ? 'add' : 'remove'
   }
 
   /**
    * @returns {Model} - The Model currently associated with this view
    */
   get model() {
-    return this._activeModel
+    return this._model
   }
 
   /**
@@ -116,12 +121,7 @@ class View {
    * @param {Model} model
    */
   async setModel(model) {
-    if (model.equals(this._activeModel)) return
-
-    this._transition.start()
-
-    if (!model) {
-      await this._deactivate()
+    if (model && model.equals(this._model)) {
       this._transition.done()
       return
     }
@@ -137,9 +137,7 @@ class View {
 
     // Take a leap of faith and activate the view based on a hint from the user
     if (isHintedAt) {
-      await this._activate(model).catch(
-        errorHintedAtButNotFound(this._options.name)
-      )
+      await this._activate(model)
       this._transition.done()
       return
     }
@@ -147,7 +145,6 @@ class View {
     const doc = await model.doc
     const node = doc.querySelector(this._selector)
     const active = node && Boolean(node.innerHTML.trim())
-
     await (active ? this._activate(model) : this._deactivate())
     this._transition.done()
   }
@@ -171,39 +168,41 @@ class View {
    */
   async _activate(model) {
     this.loading = true
-    model.doc.then(() => {
-      this.loading = false
-    })
+    model.doc.then(() => (this.loading = false))
 
-    this._transition.exitStart()
     if (this.active) {
-      this._dispatch('viewwillexit')
-      await this._transition.exit()
-      this._dispatch('viewdidexit')
+      await this._transition.beforeExit()
+      await this._exit()
+    } else {
+      this._transition.exitStart()
+      this._transition.exitDone()
     }
-    this._transition.exitDone()
 
     if (this.loading) {
-      this._transition.loading()
+      await this._transition.loading()
     }
 
     const doc = await model.doc
     const node = doc.querySelector(this._selector)
-    const active = node && Boolean(node.innerHTML.trim())
+    if (!node) throw errorViewNotFound(this.name)
+    const active = Boolean(node.innerHTML.trim())
 
-    ViewOrder.push(this)
-    this.active = active
-
-    this._transition.enterStart()
-    if (active) {
-      this._dispatch('viewwillenter')
-      await this._transition.enter(node, doc)
-      this._dispatch('viewdidenter')
-      this._activeModel = model
-    } else {
-      this._activeModel = null
+    if (!active) {
+      this.active = false
+      this.visible = false
+      return
     }
-    this._transition.enterDone()
+
+    if (!ViewOrder.has(this)) {
+      ViewOrder.push(this)
+    }
+
+    await this._transition.beforeEnter(node, doc)
+    this.visible = true
+    this.active = true
+    await this._enter(node, doc)
+
+    this._model = model
   }
 
   /**
@@ -211,18 +210,32 @@ class View {
    * @private
    */
   async _deactivate() {
+    if (!this.active) return
+
     ViewOrder.delete(this)
 
-    if (!this.active) return
+    await this._transition.beforeExit()
     this.active = false
+    await this._exit()
+    this.visible = false
 
+    this._model = null
+  }
+
+  async _enter(node, doc) {
+    this._transition.enterStart()
+    this._dispatch('viewwillenter')
+    await this._transition.enter(node, doc)
+    this._dispatch('viewdidenter')
+    this._transition.enterDone()
+  }
+
+  async _exit() {
     this._transition.exitStart()
     this._dispatch('viewwillexit')
     await this._transition.exit()
     this._dispatch('viewdidexit')
     this._transition.exitDone()
-
-    this._activeModel = null
   }
 
   _dispatch(eventName) {

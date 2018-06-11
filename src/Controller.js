@@ -11,6 +11,10 @@ const SUPPORTED = 'pushState' in history
  * @classdesc Handles updating the views on the page with new models
  */
 class Controller {
+  constructor() {
+    this._initialized = new Promise(resolve => (this._didInitialize = resolve))
+  }
+
   /**
    * Controller is a singleton which should be initialized once trough the init() method to set the options
    * @param {object} options - Options
@@ -22,11 +26,6 @@ class Controller {
   init(options = {}) {
     if (!SUPPORTED) return
 
-    if (this._initialized) {
-      throw new Error('You can only initialize Lipgloss once.')
-    }
-
-    this._initialized = true
     this._options = Object.assign(Controller.options, options)
     this._viewsMap = new WeakMap()
 
@@ -38,10 +37,13 @@ class Controller {
       this._options.fetch
     )
 
+    this._onLinkClick = this._onLinkClick.bind(this)
+    this._onDeactivateViewClick = this._onDeactivateViewClick.bind(this)
+
     this._addHistoryEntry(this._model, true)
     this._bindEvents()
-
     this.initializeContext(document)
+    this._didInitialize()
   }
 
   /**
@@ -68,44 +70,50 @@ class Controller {
     }
   }
 
+  get initialized() {
+    return this._initialized
+  }
+
   /**
    * Return all the views contained in the current document
    * @returns {View[]} - An array of View instances
    */
-  get views() {
-    return Array.from(
-      document.querySelectorAll(`[${attributes.dict.view}]`)
-    ).map(element => this._viewsMap.get(element))
+  _gatherViews() {
+    const selector = `[${attributes.dict.view}], [${attributes.dict.slot}]`
+    return Array.from(document.querySelectorAll(selector)).map(element =>
+      this._viewsMap.get(element)
+    )
+  }
+
+  _transitionAction(viewName, action) {
+    const view = this._getViewByName(viewName)
+    if (!view) return Promise.resolve()
+    return view.transition[action]
   }
 
   didExit(name) {
-    const view = this._getViewByName(name)
-    if (!view) return Promise.resolve()
-    return view.transition.didExit
+    return this._transitionAction(name, 'didExit')
   }
 
   didEnter(name) {
-    const view = this._getViewByName(name)
-    if (!view) return Promise.resolve()
-    return view.transition.didEnter
+    return this._transitionAction(name, 'didEnter')
   }
 
   didComplete(name) {
-    const view = this._getViewByName(name)
-    if (!view) return Promise.resolve()
-    return view.transition.didComplete
+    return this._transitionAction(name, 'didComplete')
   }
 
   willEnter(name) {
-    const view = this._getViewByName(name)
-    if (!view) return Promise.resolve()
-    return view.transition.willEnter
+    return this._transitionAction(name, 'willEnter')
   }
 
   willExit(name) {
+    return this._transitionAction(name, 'willExit')
+  }
+
+  isActive(name) {
     const view = this._getViewByName(name)
-    if (!view) return Promise.resolve()
-    return view.transition.willExit
+    return view && view.active
   }
 
   /**
@@ -113,8 +121,6 @@ class Controller {
    * @private
    */
   _bindEvents() {
-    this._onLinkClick = this._onLinkClick.bind(this)
-    this._onDeactivateViewClick = this._onDeactivateViewClick.bind(this)
     document.addEventListener('viewdidenter', e =>
       this.initializeContext(e.target)
     )
@@ -128,10 +134,11 @@ class Controller {
    * @param {Element} context - The context to intialize
    */
   initializeContext(context) {
-    Array.from(context.querySelectorAll(`[${attributes.dict.view}]`))
+    const selector = `[${attributes.dict.view}], [${attributes.dict.slot}]`
+    Array.from(context.querySelectorAll(selector))
       .filter(element => !this._viewsMap.has(element))
       .forEach(element =>
-        this._viewsMap.set(element, this._buildView(element, this._model))
+        this._viewsMap.set(element, this._createView(element, this._model))
       )
 
     Array.from(
@@ -152,11 +159,12 @@ class Controller {
    * @returns {View} - The created view
    * @private
    */
-  _buildView(element, model) {
-    const name = element.getAttribute(attributes.dict.view)
-    const persist = element.hasAttribute(attributes.dict.persistView)
+  _createView(element, model) {
+    const name =
+      element.getAttribute(attributes.dict.view) ||
+      element.getAttribute(attributes.dict.slot)
     const transition = this._options.transitions[name] || Transition
-    return new View(element, { name, transition, persist, model })
+    return new View(element, { name, transition, model })
   }
 
   /**
@@ -171,10 +179,11 @@ class Controller {
       `Not able to determine where [${
         attributes.dict.view
       }='${name}'] should be inserted.`
+    const views = this._gatherViews()
 
     Array.from(doc.querySelectorAll(`[${attributes.dict.view}]`))
       .map(viewElement => viewElement.getAttribute(attributes.dict.view))
-      .filter(name => !this.views.some(view => view.name === name))
+      .filter(name => !views.some(view => view.name === name))
       .forEach(name => {
         throw new Error(message(name))
       })
@@ -221,7 +230,7 @@ class Controller {
   ) {
     hints = Array.isArray(hints) ? hints : [hints]
     const model = new Model({ url, hints }, fetchOptions)
-    const samePage = this._model && this._model.url === model.url
+    const samePage = this._model && this._model.equals(model)
     this._updatePage(model)
     this._addHistoryEntry(model, samePage)
   }
@@ -244,18 +253,17 @@ class Controller {
    * @param {string} name - Name of the view to activate
    */
   deactivateView(name) {
-    const view = ViewOrder.order.find(view => !this._model.equals(view.model))
+    const view = this._getViewByName(name)
+    const newView = ViewOrder.order.find(v => !v.model.equals(view.model))
 
-    if (!view) {
+    if (!newView) {
       throw new Error(
         `Unable to deactivate view ${name}, because there's no view to fall back to.`
       )
     }
 
-    ViewOrder.delete(this._getViewByName(name))
-
-    this._updatePage(view.model)
-    this._addHistoryEntry(view.model)
+    this._updatePage(newView.model)
+    this._addHistoryEntry(newView.model)
   }
 
   /**
@@ -266,7 +274,7 @@ class Controller {
    */
   _getViewByName(name) {
     const element = document.querySelector(
-      `[${attributes.dict.view}="${name}"]`
+      `[${attributes.dict.view}="${name}"], [${attributes.dict.slot}="${name}"]`
     )
     return this._viewsMap.get(element)
   }
@@ -277,10 +285,23 @@ class Controller {
    * @private
    */
   _onPopState(e) {
+    if (!e.state) return // popstate fires on page load as well
+
     try {
-      const model = new Model(e.state.model, this._options.fetch)
+      // We use an existing model (if it exists) so we don't have to refetch the associated request
+      const similarView = this._gatherViews()
+        .filter(view => Boolean(view.model))
+        .find(view => view.model.equals(e.state.model))
+
+      const model = similarView
+        ? similarView.model
+        : new Model(e.state.model, this._options.fetch)
+
       this._updatePage(model)
-    } catch (err) {}
+    } catch (err) {
+      console.error(err)
+      window.location.href = model.url
+    }
   }
 
   /**
@@ -297,7 +318,8 @@ class Controller {
     )
     this._model = model
     try {
-      const views = this.views
+      const views = this._gatherViews()
+      views.forEach(view => view.transition.reset())
       views.forEach(view => view.setModel(model))
 
       const done = Promise.all(
@@ -311,7 +333,6 @@ class Controller {
       this._options.updateDocument(doc)
 
       await done
-
       window.dispatchEvent(new CustomEvent('pagedidupdate'))
     } catch (err) {
       console.error(err)

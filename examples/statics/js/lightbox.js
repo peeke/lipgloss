@@ -126,23 +126,27 @@ var ViewOrder = function () {
   }
 
   createClass(ViewOrder, [{
-    key: 'push',
+    key: "push",
     value: function push(view) {
       this._order = [view].concat(toConsumableArray(this._order.filter(function (v) {
         return view.name !== v.name;
       })));
     }
   }, {
-    key: 'delete',
+    key: "delete",
     value: function _delete(view) {
       this._order = this._order.filter(function (v) {
         return view.name !== v.name;
       });
     }
   }, {
-    key: 'order',
+    key: "has",
+    value: function has(view) {
+      return this._order.includes(view);
+    }
+  }, {
+    key: "order",
     get: function get$$1() {
-      console.log('order: ', this._order);
       return this._order;
     }
   }]);
@@ -164,9 +168,11 @@ var Attributes = function () {
 
     this._attributes = {
       view: 'data-view',
+      slot: 'data-view-slot',
       viewLink: 'data-view-link',
       viewActive: 'data-view-active',
       viewsLoading: 'data-views-loading',
+      viewsActive: 'data-views-active',
       deactivateView: 'data-deactivate-view',
       transition: 'data-transition'
     };
@@ -222,26 +228,31 @@ var _async$2 = function () {
       }
     };
   };
-}();var reflow = function reflow(element) {
+}();function _await$2(value, then, direct) {
+  if (direct) {
+    return then ? then(value) : value;
+  }value = Promise.resolve(value);return then ? value.then(then) : value;
+}var reflow = function reflow(element) {
   return element.offsetHeight;
 };
+var eventOptions$1 = { bubbles: true, cancelable: true
 
-/**
- * @class Transition
- * @classdesc Basic Transition class. All transitions you create should have this class as
- * (grand)parent. When extending Transition, as a rule of thumb it's good to call this the
- * super functions before your own functionality. E.g.: Sometimes you may want to do some
- * preperation work, in which it is just fine to do this before you call super.exit()
- *
- * If you extend Transition, but choose to implement your own enter method, you have to call
- * this.updateHtml(newNode) to update the HTML in order to preserve the lifecycle events.
- * @example <caption>Extending Transition</caption>
- * async exit() {
- *   super.exit()
- *   // Your code
- * }
- */
-
+  /**
+   * @class Transition
+   * @classdesc Basic Transition class. All transitions you create should have this class as
+   * (grand)parent. When extending Transition, as a rule of thumb it's good to call this the
+   * super functions before your own functionality. E.g.: Sometimes you may want to do some
+   * preperation work, in which it is just fine to do this before you call super.exit()
+   *
+   * If you extend Transition, but choose to implement your own enter method, you have to call
+   * this.updateHtml(newNode) to update the HTML in order to preserve the lifecycle events.
+   * @example <caption>Extending Transition</caption>
+   * async exit() {
+   *   super.exit()
+   *   // Your code
+   * }
+   */
+};
 var Transition = function () {
   /**
    * @param {Element} view - The view element
@@ -250,14 +261,21 @@ var Transition = function () {
     classCallCheck(this, Transition);
 
     this._view = view;
-    this.didExit = this.didEnter = this.didComplete = Promise.resolve();
+    this.willExit = this.willEnter = this.didExit = this.didEnter = this.didComplete = Promise.resolve();
+    this.exitStart = this.enterStart = this.exitDone = this.enterDone = function () {};
   }
 
   createClass(Transition, [{
-    key: 'start',
-    value: function start() {
+    key: 'reset',
+    value: function reset() {
       var _this = this;
 
+      this.willExit = new Promise(function (resolve) {
+        return _this.exitStart = resolve;
+      });
+      this.willEnter = new Promise(function (resolve) {
+        return _this.enterStart = resolve;
+      });
       this.didExit = new Promise(function (resolve) {
         return _this.exitDone = resolve;
       });
@@ -265,6 +283,11 @@ var Transition = function () {
         return _this.enterDone = resolve;
       });
       this.didComplete = Promise.all([this.didExit, this.didEnter]);
+    }
+  }, {
+    key: 'beforeExit',
+    value: function () {
+      return _await$2();
     }
 
     /**
@@ -297,6 +320,11 @@ var Transition = function () {
       reflow(_this3._view);
       _this3._view.setAttribute(attributes.dict.transition, 'loading');
     })
+  }, {
+    key: 'beforeEnter',
+    value: function () {
+      return _await$2();
+    }
 
     /**
      * @description Enter transition for the given view.
@@ -323,10 +351,9 @@ var Transition = function () {
   }, {
     key: 'updateHtml',
     value: function updateHtml(newNode) {
-      var eventOptions = { bubbles: true, cancelable: true };
-      this._view.dispatchEvent(new CustomEvent('viewhtmlwillupdate', eventOptions));
+      this._view.dispatchEvent(new CustomEvent('viewhtmlwillupdate', eventOptions$1));
       this._view.innerHTML = newNode.innerHTML;
-      this._view.dispatchEvent(new CustomEvent('viewhtmldidupdate', eventOptions));
+      this._view.dispatchEvent(new CustomEvent('viewhtmldidupdate', eventOptions$1));
     }
 
     /**
@@ -336,7 +363,9 @@ var Transition = function () {
   }, {
     key: 'done',
     value: function done() {
+      this.exitStart();
       this.exitDone();
+      this.enterStart();
       this.enterDone();
       this._view.removeAttribute(attributes.dict.transition);
       reflow(this._view);
@@ -350,7 +379,40 @@ var Transition = function () {
   return Transition;
 }();
 
-var modelId = 0;
+var _async$3 = function () {
+  try {
+    if (isNaN.apply(null, {})) {
+      return function (f) {
+        return function () {
+          try {
+            return Promise.resolve(f.apply(this, arguments));
+          } catch (e) {
+            return Promise.reject(e);
+          }
+        };
+      };
+    }
+  } catch (e) {}return function (f) {
+    // Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
+    return function () {
+      try {
+        return Promise.resolve(f.apply(this, Array.prototype.slice.call(arguments)));
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    };
+  };
+}();function _await$3(value, then, direct) {
+  if (direct) {
+    return then ? then(value) : value;
+  }value = Promise.resolve(value);return then ? value.then(then) : value;
+}var modelId = 0;
+var newId = function newId() {
+  return [Date.now(), modelId++].join('-');
+};
+var isNumber = function isNumber(n) {
+  return Number(n) === n;
+};
 
 /**
  * @class Model
@@ -366,12 +428,24 @@ var Model = function () {
    * @param {object} fetchOptions = The options used to fetch the url
    */
   function Model(options, fetchOptions) {
+    var _this = this;
+
     classCallCheck(this, Model);
 
     this._request = new Request(options.url, fetchOptions);
     this._hints = options.hints || [];
     this._doc = null;
-    this._id = options.id || modelId++;
+    this._id = isNumber(options.id) ? options.id : newId();
+
+    window.dispatchEvent(new CustomEvent('modelload'));
+
+    this._response = fetch(this._request).then(function (response) {
+      return response.ok ? response : Promise.reject();
+    });
+
+    this._response.then(function () {
+      return window.dispatchEvent(new CustomEvent('modelloaded', { detail: _this.getBlueprint() }));
+    });
   }
 
   createClass(Model, [{
@@ -379,11 +453,42 @@ var Model = function () {
     value: function hasHint(name) {
       return this._hints.includes(name);
     }
+
+    /**
+     * A check to see if name was included the given hints
+     * @param {string} name - A name of a view
+     * @returns {boolean}
+     */
+
+  }, {
+    key: 'includesView',
+    value: _async$3(function (name) {
+      var _this2 = this;
+
+      return _await$3(_this2.doc, function (doc) {
+        return Boolean(doc.querySelector('[' + attributes.dict.view + '="' + name + '"]'));
+      });
+    })
   }, {
     key: 'equals',
     value: function equals(model) {
       if (!model) return false;
       return this === model || this.id === model.id;
+    }
+
+    /**
+     * Get an object blueprint of the Model, which can be added to the history state. You can pass it to the
+     * options parameter in the constructor to recreate the model:
+     * @example <caption>Using the model blueprint</caption>
+     * const blueprint = model.getBlueprint()
+     * const twin = new Model(blueprint, fetchOptions)
+     * @returns {{url: string, hints: string[]}}
+     */
+
+  }, {
+    key: 'getBlueprint',
+    value: function getBlueprint() {
+      return { id: this._id, url: this._request.url, hints: this._hints };
     }
   }, {
     key: 'id',
@@ -411,9 +516,7 @@ var Model = function () {
     key: 'doc',
     get: function get$$1() {
       if (!this._doc) {
-        this._doc = fetch(this._request).then(function (response) {
-          return response.ok ? response : Promise.reject();
-        }).then(function (response) {
+        this._doc = this._response.then(function (response) {
           return response.text();
         }).then(function (html) {
           return new DOMParser().parseFromString(html, 'text/html');
@@ -421,25 +524,55 @@ var Model = function () {
       }
       return this._doc;
     }
-
-    /**
-     * Get an object blueprint of the Model, which can be added to the history state. You can pass it to the
-     * options parameter in the constructor to recreate the model:
-     * @example <caption>Using the model blueprint</caption>
-     * const twin = new Model(model.blueprint, fetchOptions)
-     * @returns {{url: string, hints: string[]}}
-     */
-
-  }, {
-    key: 'blueprint',
-    get: function get$$1() {
-      return { id: this._id, url: this._request.url, hints: this._hints };
-    }
   }]);
   return Model;
 }();
 
-function _awaitIgnored$1(value, direct) {
+var AttributeList = function () {
+  function AttributeList(element, attribute) {
+    classCallCheck(this, AttributeList);
+
+    this._element = element;
+    this._attribute = attribute;
+  }
+
+  createClass(AttributeList, [{
+    key: '_getList',
+    value: function _getList() {
+      var string = this._element.getAttribute(this._attribute) || '';
+      return new Set(string.trim().split(' '));
+    }
+  }, {
+    key: 'add',
+    value: function add(value) {
+      this.toggle(value, true);
+    }
+  }, {
+    key: 'remove',
+    value: function remove(value) {
+      this.toggle(value, false);
+    }
+  }, {
+    key: 'has',
+    value: function has(value) {
+      return this._getList().has(value);
+    }
+  }, {
+    key: 'toggle',
+    value: function toggle(value, force) {
+      var list = this._getList();
+      if (typeof force === 'undefined') force = !list.has(value);
+      var action = force ? 'add' : 'delete';
+
+      list[action](value);
+
+      this._element.setAttribute(this._attribute, Array.from(list).join(' '));
+    }
+  }]);
+  return AttributeList;
+}();
+
+function _awaitIgnored(value, direct) {
   if (!direct) {
     return Promise.resolve(value).then(_empty$1);
   }
@@ -466,12 +599,17 @@ function _awaitIgnored$1(value, direct) {
       }
     };
   };
-}();function _await$1(value, then, direct) {
+}();function _invoke(body, then) {
+  var result = body();if (result && result.then) {
+    return result.then(then);
+  }return then(result);
+}function _await$1(value, then, direct) {
   if (direct) {
     return then ? then(value) : value;
   }value = Promise.resolve(value);return then ? value.then(then) : value;
-}var errorHintedAtButNotFound = function errorHintedAtButNotFound(name) {
-  console.warn('Hint \'' + name + '\' was given, but not found in the loaded document.');
+}var eventOptions = { bubbles: true, cancelable: true };
+var errorViewNotFound = function errorViewNotFound(name) {
+  return new Error('View \'' + name + '\' activated, but not found in the loaded document (maybe you\'ve provided it as a hint?).');
 };
 
 /**
@@ -495,17 +633,21 @@ var View = function () {
     this._element = element;
     this._options = Object.assign(View.options, options);
 
-    this.active = !!this._element.innerHTML.trim();
+    this._loadingList = new AttributeList(document.body, attributes.dict.viewsLoading);
+    this._activeList = new AttributeList(document.body, attributes.dict.viewsActive);
+    this._visibleList = new AttributeList(document.body, 'data-views-visible');
+
+    this.active = this.visible = !!this._element.innerHTML.trim();
 
     this._model = this._options.model;
     this._selector = '[' + attributes.dict.view + '="' + this._options.name + '"]';
     this._transition = new this._options.transition(this._element);
 
+    ViewOrder$1.push(this);
+
     if (!(this._transition instanceof Transition)) {
       throw new Error('Provided transition is not an instance of Transition');
     }
-
-    this.active && ViewOrder$1.push(this);
   }
 
   /**
@@ -515,7 +657,7 @@ var View = function () {
 
 
   createClass(View, [{
-    key: 'updateModel',
+    key: 'setModel',
 
 
     /**
@@ -529,22 +671,50 @@ var View = function () {
     value: _async$1(function (model) {
       var _this = this;
 
-      if (model.equals(_this.model)) return;
-
-      // Take a leap of faith and activate the view based on a hint from the user
-      if (model.hasHint(_this._options.name)) {
-        _this.model = model;
+      if (model && model.equals(_this._model)) {
+        _this._transition.done();
         return;
       }
 
-      return _await$1(model.doc, function (doc) {
-        var node = doc.querySelector(_this._selector);
-        if (!node) return;
+      var isHintedAt = model.hasHint(_this._options.name);
+      return _await$1(isHintedAt || model.includesView(_this._options.name), function (_model$includesView) {
+        var _exit2;
 
-        var active = node && Boolean(node.innerHTML.trim());
-        _this.model = active ? model : null;
-      });
+        var includedInModel = _model$includesView;
+
+        if (!includedInModel) {
+          _this._transition.done();
+          return;
+        }
+
+        // Take a leap of faith and activate the view based on a hint from the user
+        return _invoke(function () {
+          if (isHintedAt) {
+            return _await$1(_this._activate(model), function () {
+              _this._transition.done();
+              _exit2 = 1;
+            });
+          }
+        }, function (_result) {
+          if (_exit2) return _result;
+          return _await$1(model.doc, function (doc) {
+            var node = doc.querySelector(_this._selector);
+            var active = node && Boolean(node.innerHTML.trim());
+            return _await$1(active ? _this._activate(model) : _this._deactivate(), function () {
+              _this._transition.done();
+            });
+          });
+        });
+      }, isHintedAt);
     })
+
+    /**
+     * @returns {string} - The name of this view
+     */
+
+  }, {
+    key: '_activate',
+
 
     /**
      * Activate a new Model for this View. The selector will query the retreived document for a node to use.
@@ -552,9 +722,6 @@ var View = function () {
      * @returns {Promise.<void>} - A promise resolving when the activation of the new Model is complete
      * @private
      */
-
-  }, {
-    key: '_activate',
     value: _async$1(function (model) {
       var _this2 = this;
 
@@ -563,19 +730,47 @@ var View = function () {
         return _this2.loading = false;
       });
 
-      var _this2$active = _this2.active;
-      return _await$1(_this2$active && _this2._exit(), function () {
-        _this2.loading && _this2._transition.loading();
+      return _invoke(function () {
+        if (_this2.active) {
+          return _await$1(_this2._transition.beforeExit(), function () {
+            return _awaitIgnored(_this2._exit());
+          });
+        } else {
+          _this2._transition.exitStart();
+          _this2._transition.exitDone();
+        }
+      }, function () {
+        return _invoke(function () {
+          if (_this2.loading) {
+            return _awaitIgnored(_this2._transition.loading());
+          }
+        }, function () {
+          return _await$1(model.doc, function (doc) {
+            var node = doc.querySelector(_this2._selector);
+            if (!node) throw errorViewNotFound(_this2.name);
+            var active = Boolean(node.innerHTML.trim());
 
-        return _await$1(model.doc, function (doc) {
-          var node = doc.querySelector(_this2._selector);
-          if (!node) errorHintedAtButNotFound(_this2.name);
+            if (!active) {
+              _this2.active = false;
+              _this2.visible = false;
+              return;
+            }
 
-          var done = _this2._enter(node, doc);
-          _this2.active = true;
-          return _awaitIgnored$1(done);
+            if (!ViewOrder$1.has(_this2)) {
+              ViewOrder$1.push(_this2);
+            }
+
+            return _await$1(_this2._transition.beforeEnter(node, doc), function () {
+              _this2.visible = true;
+              _this2.active = true;
+              return _await$1(_this2._enter(node, doc), function () {
+
+                _this2._model = model;
+              });
+            });
+          });
         });
-      }, !_this2$active);
+      });
     })
 
     /**
@@ -589,19 +784,28 @@ var View = function () {
       var _this3 = this;
 
       if (!_this3.active) return;
-      var done = _this3._exit();
-      _this3.active = false;
-      return _awaitIgnored$1(done);
+
+      ViewOrder$1.delete(_this3);
+
+      return _await$1(_this3._transition.beforeExit(), function () {
+        _this3.active = false;
+        return _await$1(_this3._exit(), function () {
+          _this3.visible = false;
+
+          _this3._model = null;
+        });
+      });
     })
   }, {
     key: '_enter',
     value: _async$1(function (node, doc) {
       var _this4 = this;
 
+      _this4._transition.enterStart();
       _this4._dispatch('viewwillenter');
       return _await$1(_this4._transition.enter(node, doc), function () {
-        _this4._transition.enterDone();
         _this4._dispatch('viewdidenter');
+        _this4._transition.enterDone();
       });
     })
   }, {
@@ -609,16 +813,16 @@ var View = function () {
     value: _async$1(function () {
       var _this5 = this;
 
+      _this5._transition.exitStart();
       _this5._dispatch('viewwillexit');
       return _await$1(_this5._transition.exit(), function () {
-        _this5._transition.exitDone();
         _this5._dispatch('viewdidexit');
+        _this5._transition.exitDone();
       });
     })
   }, {
     key: '_dispatch',
     value: function _dispatch(eventName) {
-      var eventOptions = { bubbles: true, cancelable: true };
       this._element.dispatchEvent(new CustomEvent(eventName, eventOptions));
     }
   }, {
@@ -641,7 +845,15 @@ var View = function () {
     set: function set$$1(bool) {
       this._active = bool;
       this._element.setAttribute(attributes.dict.viewActive, bool);
-      bool ? ViewOrder$1.push(this) : ViewOrder$1.delete(this);
+      this._activeList.toggle(this._options.name, bool);
+    }
+  }, {
+    key: 'visible',
+    set: function set$$1(bool) {
+      if (this._visible === bool) return;
+      this._visible = bool;
+      this._element.setAttribute(attributes.dict.viewActive, bool);
+      this._visibleList.toggle(this._options.name, bool);
     }
 
     /**
@@ -660,14 +872,9 @@ var View = function () {
      */
     ,
     set: function set$$1(bool) {
-      if (this._isLoading === bool) return;
       this._isLoading = bool;
-
-      var value = document.body.getAttribute(attributes.dict.viewsLoading) || '';
-      var tokenList = new Set(value.split(' '));
-      bool ? tokenList.add(this.name) : tokenList.delete(this.name);
-
-      document.body.setAttribute(attributes.dict.viewsLoading, Array.from(tokenList).join(' '));
+      this._loadingList.toggle(this._options.name, bool);
+      
     }
 
     /**
@@ -678,22 +885,7 @@ var View = function () {
     key: 'model',
     get: function get$$1() {
       return this._model;
-    },
-    set: function set$$1(model) {
-      var _this6 = this;
-
-      this._model = model;
-      this._transition.start();
-      var action = model ? this._activate(model) : this._deactivate();
-      action.then(function () {
-        return _this6._transition.done();
-      });
     }
-
-    /**
-     * @returns {string} - The name of this view
-     */
-
   }, {
     key: 'name',
     get: function get$$1() {
@@ -717,7 +909,23 @@ var View = function () {
   return View;
 }();
 
-function _await(value, then, direct) {
+function _continueIgnored(value) {
+  if (value && value.then) {
+    return value.then(_empty);
+  }
+}function _empty() {}function _catch(body, recover) {
+  try {
+    var result = body();
+  } catch (e) {
+    try {
+      return recover(e);
+    } catch (e2) {
+      return Promise.reject(e2);
+    }
+  }if (result && result.then) {
+    return result.then(void 0, recover);
+  }return result;
+}function _await(value, then, direct) {
   if (direct) {
     return then ? then(value) : value;
   }value = Promise.resolve(value);return then ? value.then(then) : value;
@@ -745,15 +953,7 @@ function _await(value, then, direct) {
       }
     };
   };
-}();function _awaitIgnored(value, direct) {
-  if (!direct) {
-    return Promise.resolve(value).then(_empty);
-  }
-}function _empty() {}var SUPPORTED = 'pushState' in history;
-
-var errorNoTargetForView = function errorNoTargetForView(name) {
-  throw new Error('Not able to determine where [' + attributes.dict.view + '=\'' + name + '\'] should be inserted.');
-};
+}();var SUPPORTED = 'pushState' in history;
 
 /**
  * @class Controller
@@ -762,45 +962,47 @@ var errorNoTargetForView = function errorNoTargetForView(name) {
 
 var Controller = function () {
   function Controller() {
+    var _this = this;
+
     classCallCheck(this, Controller);
+
+    this._initialized = new Promise(function (resolve) {
+      return _this._didInitialize = resolve;
+    });
   }
+
+  /**
+   * Controller is a singleton which should be initialized once trough the init() method to set the options
+   * @param {object} options - Options
+   * @param {string[]} options.defaultHints - Which views are expected to be present, when a link is loaded with an empty [data-view-link]
+   * @param {Object.<string, Transition>} options.transitions - An object containing the Transition's (value) for a given view (property)
+   * @param {function(string)} options.sanitizeUrl - A function to transform the url, before it's compared and pushed to the history
+   * @param {object} options.fetch - The options to pass into a fetch request
+   */
+
 
   createClass(Controller, [{
     key: 'init',
-
-    /**
-     * Controller is a singleton which should be initialized once trough the init() method to set the options
-     * @param {object} options - Options
-     * @param {string[]} options.defaultHints - Which views are expected to be present, when a link is loaded with an empty [data-view-link]
-     * @param {Object.<string, Transition>} options.transitions - An object containing the Transition's (value) for a given view (property)
-     * @param {function(string)} options.sanitizeUrl - A function to transform the url, before it's compared and pushed to the history
-     * @param {object} options.fetch - The options to pass into a fetch request
-     */
     value: function init() {
       var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
       if (!SUPPORTED) return;
 
-      if (this._initialized) {
-        throw new Error('You can only initialize Lipgloss once.');
-      }
-
-      this._initialized = true;
       this._options = Object.assign(Controller.options, options);
       this._viewsMap = new WeakMap();
 
       attributes.assign(this._options.attributes);
 
-      // Setup initial history state (replaceState)
-      this._model = new Model({
-        url: this._options.sanitizeUrl(window.location.href),
-        hints: this._options.defaultHints
-      }, this._options.fetch);
+      var url = this._options.sanitizeUrl(window.location.href);
+      this._model = new Model({ url: url, hints: this._options.defaultHints }, this._options.fetch);
+
+      this._onLinkClick = this._onLinkClick.bind(this);
+      this._onDeactivateViewClick = this._onDeactivateViewClick.bind(this);
 
       this._addHistoryEntry(this._model, true);
-
       this._bindEvents();
       this.initializeContext(document);
+      this._didInitialize();
     }
 
     /**
@@ -809,34 +1011,58 @@ var Controller = function () {
      */
 
   }, {
-    key: 'getViews',
+    key: '_gatherViews',
 
 
     /**
      * Return all the views contained in the current document
      * @returns {View[]} - An array of View instances
      */
-    value: function getViews() {
-      var _this = this;
+    value: function _gatherViews() {
+      var _this2 = this;
 
-      return Array.from(document.querySelectorAll('[' + attributes.dict.view + ']')).map(function (element) {
-        return _this._viewsMap.get(element);
+      var selector = '[' + attributes.dict.view + '], [' + attributes.dict.slot + ']';
+      return Array.from(document.querySelectorAll(selector)).map(function (element) {
+        return _this2._viewsMap.get(element);
       });
+    }
+  }, {
+    key: '_transitionAction',
+    value: function _transitionAction(viewName, action) {
+      var view = this._getViewByName(viewName);
+      if (!view) return Promise.resolve();
+      return view.transition[action];
     }
   }, {
     key: 'didExit',
     value: function didExit(name) {
-      return this._getViewByName(name).transition.didExit;
+      return this._transitionAction(name, 'didExit');
     }
   }, {
     key: 'didEnter',
     value: function didEnter(name) {
-      return this._getViewByName(name).transition.didEnter;
+      return this._transitionAction(name, 'didEnter');
     }
   }, {
     key: 'didComplete',
     value: function didComplete(name) {
-      return this._getViewByName(name).transition.didComplete;
+      return this._transitionAction(name, 'didComplete');
+    }
+  }, {
+    key: 'willEnter',
+    value: function willEnter(name) {
+      return this._transitionAction(name, 'willEnter');
+    }
+  }, {
+    key: 'willExit',
+    value: function willExit(name) {
+      return this._transitionAction(name, 'willExit');
+    }
+  }, {
+    key: 'isActive',
+    value: function isActive(name) {
+      var view = this._getViewByName(name);
+      return view && view.active;
     }
 
     /**
@@ -847,15 +1073,13 @@ var Controller = function () {
   }, {
     key: '_bindEvents',
     value: function _bindEvents() {
-      var _this2 = this;
+      var _this3 = this;
 
-      this._onLinkClick = this._onLinkClick.bind(this);
-      this._onDeactivateViewClick = this._onDeactivateViewClick.bind(this);
       document.addEventListener('viewdidenter', function (e) {
-        return _this2.initializeContext(e.target);
+        return _this3.initializeContext(e.target);
       });
       window.addEventListener('popstate', function (e) {
-        return _this2._onPopState(e);
+        return _this3._onPopState(e);
       });
     }
 
@@ -869,20 +1093,21 @@ var Controller = function () {
   }, {
     key: 'initializeContext',
     value: function initializeContext(context) {
-      var _this3 = this;
+      var _this4 = this;
 
-      Array.from(context.querySelectorAll('[' + attributes.dict.view + ']')).filter(function (element) {
-        return !_this3._viewsMap.has(element);
+      var selector = '[' + attributes.dict.view + '], [' + attributes.dict.slot + ']';
+      Array.from(context.querySelectorAll(selector)).filter(function (element) {
+        return !_this4._viewsMap.has(element);
       }).forEach(function (element) {
-        return _this3._viewsMap.set(element, _this3._buildView(element, _this3._model));
+        return _this4._viewsMap.set(element, _this4._createView(element, _this4._model));
       });
 
       Array.from(context.querySelectorAll('[href][' + attributes.dict.viewLink + ']')).forEach(function (link) {
-        return link.addEventListener('click', _this3._onLinkClick);
+        return link.addEventListener('click', _this4._onLinkClick);
       });
 
       Array.from(context.querySelectorAll('[' + attributes.dict.deactivateView + ']')).forEach(function (link) {
-        return link.addEventListener('click', _this3._onDeactivateViewClick);
+        return link.addEventListener('click', _this4._onDeactivateViewClick);
       });
     }
 
@@ -895,9 +1120,9 @@ var Controller = function () {
      */
 
   }, {
-    key: '_buildView',
-    value: function _buildView(element, model) {
-      var name = element.getAttribute(attributes.dict.view);
+    key: '_createView',
+    value: function _createView(element, model) {
+      var name = element.getAttribute(attributes.dict.view) || element.getAttribute(attributes.dict.slot);
       var transition = this._options.transitions[name] || Transition;
       return new View(element, { name: name, transition: transition, model: model });
     }
@@ -913,7 +1138,10 @@ var Controller = function () {
   }, {
     key: '_throwOnUnknownViews',
     value: function _throwOnUnknownViews(doc) {
-      var views = this.getViews();
+      var message = function message(name) {
+        return 'Not able to determine where [' + attributes.dict.view + '=\'' + name + '\'] should be inserted.';
+      };
+      var views = this._gatherViews();
 
       Array.from(doc.querySelectorAll('[' + attributes.dict.view + ']')).map(function (viewElement) {
         return viewElement.getAttribute(attributes.dict.view);
@@ -921,7 +1149,22 @@ var Controller = function () {
         return !views.some(function (view) {
           return view.name === name;
         });
-      }).forEach(errorNoTargetForView);
+      }).forEach(function (name) {
+        throw new Error(message(name));
+      });
+    }
+
+    /**
+     * Checks whether a url is equal to the current url (after sanitizing)
+     * @param {string} url - The url to compare to the current url
+     * @returns {boolean}
+     * @private
+     */
+
+  }, {
+    key: '_isCurrentUrl',
+    value: function _isCurrentUrl(url) {
+      return this._options.sanitizeUrl(url) === this._options.sanitizeUrl(window.location.href);
     }
 
     /**
@@ -934,17 +1177,15 @@ var Controller = function () {
 
   }, {
     key: '_onLinkClick',
-    value: function _onLinkClick(e) {
-      e.preventDefault();
-      var url = this._options.sanitizeUrl(e.currentTarget.href);
-      var viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink);
-      var hints = viewLink ? viewLink.split(',') : this._options.defaultHints;
+    value: _async(function (e) {
+      var _this5 = this;
 
-      this.openUrl(url, hints).catch(function (err) {
-        console.error(err);
-        window.location.href = url;
-      });
-    }
+      e.preventDefault();
+      var url = _this5._options.sanitizeUrl(e.currentTarget.href);
+      var viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink);
+      var hints = viewLink ? viewLink.split(',') : _this5._options.defaultHints;
+      _this5.openUrl(url, hints);
+    })
 
     /**
      *
@@ -955,17 +1196,16 @@ var Controller = function () {
 
   }, {
     key: 'openUrl',
-    value: _async(function (url, hints, fetchOptions) {
-      var _this4 = this;
+    value: function openUrl(url) {
+      var hints = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this._options.defaultHints;
+      var fetchOptions = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this._options.fetch;
 
-      hints = hints || _this4._options.defaultHints;
       hints = Array.isArray(hints) ? hints : [hints];
-      fetchOptions = fetchOptions || _this4._options.fetch;
-
       var model = new Model({ url: url, hints: hints }, fetchOptions);
-      _this4._addHistoryEntry(model);
-      return _awaitIgnored(_this4._updatePage(model));
-    })
+      var samePage = this._model && this._model.equals(model);
+      this._updatePage(model);
+      this._addHistoryEntry(model, samePage);
+    }
 
     /**
      * Handles a click on an element with a [data-deactivate-view="viewname"] attribute.
@@ -990,22 +1230,19 @@ var Controller = function () {
 
   }, {
     key: 'deactivateView',
-    value: _async(function (name) {
-      var _this5 = this;
-
-      var view = ViewOrder$1.order.find(function (view) {
-        return !_this5._model.equals(view.model);
+    value: function deactivateView(name) {
+      var view = this._getViewByName(name);
+      var newView = ViewOrder$1.order.find(function (v) {
+        return !v.model.equals(view.model);
       });
 
-      if (!view) {
+      if (!newView) {
         throw new Error('Unable to deactivate view ' + name + ', because there\'s no view to fall back to.');
       }
 
-      ViewOrder$1.delete(_this5._getViewByName(name));
-
-      _this5._addHistoryEntry(view.model);
-      return _awaitIgnored(_this5._updatePage(view.model));
-    })
+      this._updatePage(newView.model);
+      this._addHistoryEntry(newView.model);
+    }
 
     /**
      * Retreive a Model from a View
@@ -1017,7 +1254,7 @@ var Controller = function () {
   }, {
     key: '_getViewByName',
     value: function _getViewByName(name) {
-      var element = document.querySelector('[' + attributes.dict.view + '="' + name + '"]');
+      var element = document.querySelector('[' + attributes.dict.view + '="' + name + '"], [' + attributes.dict.slot + '="' + name + '"]');
       return this._viewsMap.get(element);
     }
 
@@ -1030,9 +1267,23 @@ var Controller = function () {
   }, {
     key: '_onPopState',
     value: function _onPopState(e) {
-      if (!e.state || !e.state.model) return;
-      var model = new Model(e.state.model, this._options.fetch);
-      this._updatePage(model);
+      if (!e.state) return; // popstate fires on page load as well
+
+      try {
+        // We use an existing model (if it exists) so we don't have to refetch the associated request
+        var similarView = this._gatherViews().filter(function (view) {
+          return Boolean(view.model);
+        }).find(function (view) {
+          return view.model.equals(e.state.model);
+        });
+
+        var _model = similarView ? similarView.model : new Model(e.state.model, this._options.fetch);
+
+        this._updatePage(_model);
+      } catch (err) {
+        console.error(err);
+        window.location.href = model.url;
+      }
     }
 
     /**
@@ -1047,27 +1298,37 @@ var Controller = function () {
     value: _async(function (model) {
       var _this6 = this;
 
-      window.dispatchEvent(new CustomEvent('pagewillupdate', { detail: model.blueprint }));
-
-      _this6._model = model;
-      var views = _this6.getViews();
-
-      views.forEach(function (view) {
-        return view.updateModel(model);
-      });
-
-      var done = Promise.all(views.map(function (view) {
-        return view.transition.didComplete;
+      window.dispatchEvent(new CustomEvent('pagewillupdate', {
+        detail: model.getBlueprint()
       }));
-
-      return _await(model.doc, function (doc) {
-        _this6._throwOnUnknownViews(doc);
-        _this6._options.updateDocument(doc);
-
-        return _await(done, function () {
-          window.dispatchEvent(new CustomEvent('pagedidupdate'));
+      _this6._model = model;
+      return _continueIgnored(_catch(function () {
+        var views = _this6._gatherViews();
+        views.forEach(function (view) {
+          return view.transition.reset();
         });
-      });
+        views.forEach(function (view) {
+          return view.setModel(model);
+        });
+
+        var done = Promise.all(views.map(function (view) {
+          return view.transition;
+        }).map(function (transition) {
+          return transition.didComplete;
+        }));
+
+        return _await(model.doc, function (doc) {
+          _this6._throwOnUnknownViews(doc);
+          _this6._options.updateDocument(doc);
+
+          return _await(done, function () {
+            window.dispatchEvent(new CustomEvent('pagedidupdate'));
+          });
+        });
+      }, function (err) {
+        console.error(err);
+        window.location.href = model.url;
+      }));
     })
 
     /**
@@ -1085,13 +1346,18 @@ var Controller = function () {
       var state = {
         title: document.title,
         url: model.url,
-        model: model.blueprint
+        model: model.getBlueprint()
       };
 
       var method = replaceEntry ? 'replaceState' : 'pushState';
       history[method](state, document.title, model.url);
 
       window.dispatchEvent(new CustomEvent('statechange', { detail: state }));
+    }
+  }, {
+    key: 'initialized',
+    get: function get$$1() {
+      return this._initialized;
     }
   }], [{
     key: 'options',
@@ -1122,7 +1388,7 @@ var Controller = function () {
 
 var lipgloss = new Controller();
 
-var _async$3 = function () {
+var _async$4 = function () {
   try {
     if (isNaN.apply(null, {})) {
       return function (f) {
@@ -1145,7 +1411,7 @@ var _async$3 = function () {
       }
     };
   };
-}();function _awaitIgnored$2(value, direct) {
+}();function _awaitIgnored$1(value, direct) {
   if (!direct) {
     return Promise.resolve(value).then(_empty$2);
   }
@@ -1167,11 +1433,11 @@ var AnimationTransition = function (_Transition) {
     /**
      *
      */
-    value: _async$3(function () {
+    value: _async$4(function () {
       var _this2 = this;
 
       get(AnimationTransition.prototype.__proto__ || Object.getPrototypeOf(AnimationTransition.prototype), 'exit', _this2).call(_this2);
-      return _awaitIgnored$2(new Promise(function (resolve) {
+      return _awaitIgnored$1(new Promise(function (resolve) {
         var animationEnd = function animationEnd(e) {
           if (e.target !== _this2._view) return;
           _this2._view.removeEventListener('animationend', animationEnd);
@@ -1188,11 +1454,11 @@ var AnimationTransition = function (_Transition) {
 
   }, {
     key: 'enter',
-    value: _async$3(function (node) {
+    value: _async$4(function (node) {
       var _this3 = this;
 
       get(AnimationTransition.prototype.__proto__ || Object.getPrototypeOf(AnimationTransition.prototype), 'enter', _this3).call(_this3, node);
-      return _awaitIgnored$2(new Promise(function (resolve) {
+      return _awaitIgnored$1(new Promise(function (resolve) {
         var animationEnd = function animationEnd(e) {
           if (e.target !== _this3._view) return;
           _this3._view.removeEventListener('animationend', animationEnd);
