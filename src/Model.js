@@ -16,7 +16,7 @@ class Model {
    * @param {array} options.hints=string[] - The views expected to be present on the requested page
    * @param {object} fetchOptions = The options used to fetch the url
    */
-  constructor(options, fetchOptions) {
+  constructor(options, fetchOptions = {}) {
     this._request = new Request(options.url, fetchOptions)
     this._hints = options.hints || []
     this._doc = null
@@ -24,9 +24,14 @@ class Model {
 
     window.dispatchEvent(new CustomEvent('modelload'))
 
-    this._response = fetch(this._request).then(
-      response => (response.ok ? response : Promise.reject())
-    )
+    this._response = fetch(this._request)
+      .then(response => (response.ok ? response : Promise.reject()))
+      .then(response => {
+        // { redirect: 'error' } fallback for IE and some older browsers
+        if (fetchOptions.redirect !== 'error') return response
+        if (options.url !== response.url) return Promise.reject()
+        return response
+      })
 
     this._response.then(() =>
       window.dispatchEvent(

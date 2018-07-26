@@ -384,9 +384,10 @@ var Model = function () {
    * @param {array} options.hints=string[] - The views expected to be present on the requested page
    * @param {object} fetchOptions = The options used to fetch the url
    */
-  function Model(options, fetchOptions) {
+  function Model(options) {
     var _this = this;
 
+    var fetchOptions = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
     classCallCheck(this, Model);
 
     this._request = new Request(options.url, fetchOptions);
@@ -398,6 +399,11 @@ var Model = function () {
 
     this._response = fetch(this._request).then(function (response) {
       return response.ok ? response : Promise.reject();
+    }).then(function (response) {
+      // { redirect: 'error' } fallback for IE and some older browsers
+      if (fetchOptions.redirect !== 'error') return response;
+      if (options.url !== response.url) return Promise.reject();
+      return response;
     });
 
     this._response.then(function () {
