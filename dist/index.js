@@ -752,11 +752,7 @@ var View = function () {
   return View;
 }();
 
-function _continueIgnored(value) {
-  if (value && value.then) {
-    return value.then(_empty);
-  }
-}function _empty() {}function _catch(body, recover) {
+function _catch(body, recover) {
   try {
     var result = body();
   } catch (e) {
@@ -1093,7 +1089,7 @@ var Controller = function () {
         detail: model.getBlueprint()
       }));
       _this6._model = model;
-      return _continueIgnored(_catch(function () {
+      return _catch(function () {
         var views = _this6.views;
         views.forEach(function (view) {
           return view.setModel(model);
@@ -1107,6 +1103,10 @@ var Controller = function () {
 
         return _await(model.doc, function (doc) {
           _this6._throwOnUnknownViews(doc);
+          if (!_this6._options.validateDocument(doc)) {
+            throw new Error('Document didn\'t validate');
+          }
+
           _this6._options.updateDocument(doc);
 
           return _await(done, function () {
@@ -1117,7 +1117,7 @@ var Controller = function () {
       }, function (err) {
         console.error(err);
         window.location.href = model.url;
-      }));
+      });
     })
 
     /**
@@ -1169,6 +1169,9 @@ var Controller = function () {
         },
         updateDocument: function updateDocument(doc) {
           document.title = doc.title;
+        },
+        validateDocument: function validateDocument(doc) {
+          return !!doc.querySelector('[' + attributes.dict.view + ']');
         },
         attributes: {},
         fetch: {

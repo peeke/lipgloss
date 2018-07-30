@@ -56,6 +56,7 @@ class Controller {
       updateDocument: doc => {
         document.title = doc.title
       },
+      validateDocument: doc => !!doc.querySelector(`[${attributes.dict.view}]`),
       attributes: {},
       fetch: {
         credentials: 'same-origin',
@@ -281,6 +282,10 @@ class Controller {
 
       const doc = await model.doc
       this._throwOnUnknownViews(doc)
+      if (!this._options.validateDocument(doc)) {
+        throw new Error('Document didn\'t validate')
+      }
+
       this._options.updateDocument(doc)
 
       await done
