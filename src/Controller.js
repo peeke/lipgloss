@@ -333,7 +333,9 @@ class Controller {
       this._options.updateDocument(doc)
 
       await done
-      window.dispatchEvent(new CustomEvent('pagedidupdate'))
+      window.dispatchEvent(new CustomEvent('pagedidupdate', {
+        detail: model.getBlueprint()
+      }))
     } catch (err) {
       console.error(err)
       window.location.href = model.url

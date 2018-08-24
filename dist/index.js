@@ -1288,7 +1288,9 @@ var Controller = function () {
           _this6._options.updateDocument(doc);
 
           return _await(done, function () {
-            window.dispatchEvent(new CustomEvent('pagedidupdate'));
+            window.dispatchEvent(new CustomEvent('pagedidupdate', {
+              detail: model.getBlueprint()
+            }));
           });
         });
       }, function (err) {
