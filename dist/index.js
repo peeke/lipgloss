@@ -609,7 +609,9 @@ var View = function () {
     this._selector = '[' + attributes.dict.view + '="' + this._options.name + '"]';
     this._transition = new this._options.transition(this._element);
 
-    ViewOrder$1.push(this);
+    if (this.active) {
+      ViewOrder$1.push(this);
+    }
 
     if (!(this._transition instanceof Transition)) {
       throw new Error('Provided transition is not an instance of Transition');
