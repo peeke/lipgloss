@@ -580,9 +580,9 @@ var AttributeList = function () {
 
 function _awaitIgnored(value, direct) {
   if (!direct) {
-    return Promise.resolve(value).then(_empty$1);
+    return Promise.resolve(value).then(_empty);
   }
-}function _empty$1() {}var _async$1 = function () {
+}function _empty() {}var _async$1 = function () {
   try {
     if (isNaN.apply(null, {})) {
       return function (f) {
@@ -649,7 +649,9 @@ var View = function () {
     this._selector = '[' + attributes.dict.view + '="' + this._options.name + '"]';
     this._transition = new this._options.transition(this._element);
 
-    ViewOrder$1.push(this);
+    if (this.active) {
+      ViewOrder$1.push(this);
+    }
 
     if (!(this._transition instanceof Transition)) {
       throw new Error('Provided transition is not an instance of Transition');
@@ -915,11 +917,9 @@ var View = function () {
   return View;
 }();
 
-function _continueIgnored(value) {
-  if (value && value.then) {
-    return value.then(_empty);
-  }
-}function _empty() {}function _catch(body, recover) {
+function _continue(value, then) {
+  return value && value.then ? value.then(then) : then(value);
+}function _catch(body, recover) {
   try {
     var result = body();
   } catch (e) {
@@ -1001,11 +1001,14 @@ var Controller = function () {
 
       var url = this._options.sanitizeUrl(window.location.href);
       this._model = new Model({ url: url, hints: this._options.defaultHints }, this._options.fetch);
+      this._queuedModel = this._model;
+      this._updatingPage = false;
 
       this._onLinkClick = this._onLinkClick.bind(this);
       this._onDeactivateViewClick = this._onDeactivateViewClick.bind(this);
 
       this._addHistoryEntry(this._model, true);
+
       this._bindEvents();
       this.initializeContext(document);
       this._didInitialize();
@@ -1174,8 +1177,7 @@ var Controller = function () {
     }
 
     /**
-     * Handles a click on an element with a [data-view-link] attribute.
-     * Loads the document found at [href], unless that's the current url already.
+     * Handles a click on an element with a [data-view-link] attribute. Loads the document found at [href].
      * This function calls the _updatePage function and adds a history entry.
      * @param {Event} e - Click event
      * @private
@@ -1209,7 +1211,7 @@ var Controller = function () {
       hints = Array.isArray(hints) ? hints : [hints];
       var model = new Model({ url: url, hints: hints }, fetchOptions);
       var samePage = this._model && this._model.equals(model);
-      this._updatePage(model);
+      this._queuePageUpdate(model);
       this._addHistoryEntry(model, samePage);
     }
 
@@ -1246,7 +1248,7 @@ var Controller = function () {
         throw new Error('Unable to deactivate view ' + name + ', because there\'s no view to fall back to.');
       }
 
-      this._updatePage(newView.model);
+      this._queuePageUpdate(newView.model);
       this._addHistoryEntry(newView.model);
     }
 
@@ -1285,11 +1287,25 @@ var Controller = function () {
 
         var _model = similarView ? similarView.model : new Model(e.state.model, this._options.fetch);
 
-        this._updatePage(_model);
+        this._queuePageUpdate(_model);
       } catch (err) {
         console.error(err);
         window.location.href = model.url;
       }
+    }
+
+    /**
+     * Page updates are always queued, because we want to finish the current transition before starting the next
+     * @param {Model} model - The model to update the page with
+     * @private
+     */
+
+  }, {
+    key: '_queuePageUpdate',
+    value: function _queuePageUpdate(model) {
+      this._queuedModel = model;
+      if (this._updatingPage) return;
+      this._updatePage(model);
     }
 
     /**
@@ -1304,11 +1320,15 @@ var Controller = function () {
     value: _async(function (model) {
       var _this6 = this;
 
+      _this6._updatingPage = true;
+
       window.dispatchEvent(new CustomEvent('pagewillupdate', {
         detail: model.getBlueprint()
       }));
+
       _this6._model = model;
-      return _continueIgnored(_catch(function () {
+
+      return _continue(_catch(function () {
         var views = _this6._gatherViews();
         views.forEach(function (view) {
           return view.transition.reset();
@@ -1328,13 +1348,22 @@ var Controller = function () {
           _this6._options.updateDocument(doc);
 
           return _await(done, function () {
-            window.dispatchEvent(new CustomEvent('pagedidupdate'));
+            window.dispatchEvent(new CustomEvent('pagedidupdate', {
+              detail: model.getBlueprint()
+            }));
           });
         });
       }, function (err) {
         console.error(err);
         window.location.href = model.url;
-      }));
+      }), function () {
+
+        if (_this6._queuedModel !== model) {
+          _this6._updatePage(_this6._queuedModel);
+        }
+
+        _this6._updatingPage = false;
+      });
     })
 
     /**
@@ -1358,7 +1387,10 @@ var Controller = function () {
       var method = replaceEntry ? 'replaceState' : 'pushState';
       history[method](state, document.title, model.url);
 
-      window.dispatchEvent(new CustomEvent('statechange', { detail: state }));
+      window.dispatchEvent(new CustomEvent('statechange', {
+        detail: state,
+        index: this._historyIndex++
+      }));
     }
   }, {
     key: 'initialized',
@@ -1419,9 +1451,9 @@ var _async$4 = function () {
   };
 }();function _awaitIgnored$1(value, direct) {
   if (!direct) {
-    return Promise.resolve(value).then(_empty$2);
+    return Promise.resolve(value).then(_empty$1);
   }
-}function _empty$2() {}/**
+}function _empty$1() {}/**
  * Extended Transition
  */
 var AnimationTransition = function (_Transition) {

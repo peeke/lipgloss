@@ -36,11 +36,14 @@ class Controller {
       { url, hints: this._options.defaultHints },
       this._options.fetch
     )
+    this._queuedModel = this._model
+    this._updatingPage = false
 
     this._onLinkClick = this._onLinkClick.bind(this)
     this._onDeactivateViewClick = this._onDeactivateViewClick.bind(this)
 
     this._addHistoryEntry(this._model, true)
+
     this._bindEvents()
     this.initializeContext(document)
     this._didInitialize()
@@ -203,8 +206,7 @@ class Controller {
   }
 
   /**
-   * Handles a click on an element with a [data-view-link] attribute.
-   * Loads the document found at [href], unless that's the current url already.
+   * Handles a click on an element with a [data-view-link] attribute. Loads the document found at [href].
    * This function calls the _updatePage function and adds a history entry.
    * @param {Event} e - Click event
    * @private
@@ -231,7 +233,7 @@ class Controller {
     hints = Array.isArray(hints) ? hints : [hints]
     const model = new Model({ url, hints }, fetchOptions)
     const samePage = this._model && this._model.equals(model)
-    this._updatePage(model)
+    this._queuePageUpdate(model)
     this._addHistoryEntry(model, samePage)
   }
 
@@ -262,7 +264,7 @@ class Controller {
       )
     }
 
-    this._updatePage(newView.model)
+    this._queuePageUpdate(newView.model)
     this._addHistoryEntry(newView.model)
   }
 
@@ -297,11 +299,22 @@ class Controller {
         ? similarView.model
         : new Model(e.state.model, this._options.fetch)
 
-      this._updatePage(model)
+      this._queuePageUpdate(model)
     } catch (err) {
       console.error(err)
       window.location.href = model.url
     }
+  }
+
+  /**
+   * Page updates are always queued, because we want to finish the current transition before starting the next
+   * @param {Model} model - The model to update the page with
+   * @private
+   */
+  _queuePageUpdate(model) {
+    this._queuedModel = model
+    if (this._updatingPage) return
+    this._updatePage(model)
   }
 
   /**
@@ -311,12 +324,16 @@ class Controller {
    * @private
    */
   async _updatePage(model) {
+    this._updatingPage = true
+
     window.dispatchEvent(
       new CustomEvent('pagewillupdate', {
         detail: model.getBlueprint()
       })
     )
+
     this._model = model
+
     try {
       const views = this._gatherViews()
       views.forEach(view => view.transition.reset())
@@ -333,13 +350,22 @@ class Controller {
       this._options.updateDocument(doc)
 
       await done
-      window.dispatchEvent(new CustomEvent('pagedidupdate', {
-        detail: model.getBlueprint()
-      }))
+      window.dispatchEvent(
+        new CustomEvent('pagedidupdate', {
+          detail: model.getBlueprint()
+        })
+      )
+
     } catch (err) {
       console.error(err)
       window.location.href = model.url
     }
+
+    if (this._queuedModel !== model) {
+      this._updatePage(this._queuedModel)
+    }
+
+    this._updatingPage = false
   }
 
   /**
@@ -358,7 +384,12 @@ class Controller {
     const method = replaceEntry ? 'replaceState' : 'pushState'
     history[method](state, document.title, model.url)
 
-    window.dispatchEvent(new CustomEvent('statechange', { detail: state }))
+    window.dispatchEvent(
+      new CustomEvent('statechange', {
+        detail: state,
+        index: this._historyIndex++
+      })
+    )
   }
 }
 
