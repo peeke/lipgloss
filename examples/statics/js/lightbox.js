@@ -649,7 +649,7 @@ var View = function () {
 
 
   createClass(View, [{
-    key: '_setModel',
+    key: 'setModel',
 
 
     /**
@@ -866,9 +866,6 @@ var View = function () {
     key: 'model',
     get: function get$$1() {
       return this._model;
-    },
-    set: function set$$1(model) {
-      this._setModel(model);
     }
   }, {
     key: 'name',
@@ -1239,18 +1236,18 @@ var Controller = function () {
 
       return _continue(_catch(function () {
         var views = _this5._gatherViews();
-        views.forEach(function (view) {
-          view.model = model;
+        var promises = views.map(function (view) {
+          return view.setModel(model);
         });
-
-        // const done = Promise.all(views.map(view => view.transition.didComplete));
+        var done = Promise.all(promises);
 
         return _await(model.doc, function (doc) {
           _this5._throwOnUnknownViews(doc);
           _this5._options.updateDocument(doc);
 
-          // await done;
-          dispatch(window, "pagedidupdate", model.getBlueprint());
+          return _await(done, function () {
+            dispatch(window, "pagedidupdate", model.getBlueprint());
+          });
         });
       }, function (err) {
         console.error(err);

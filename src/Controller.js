@@ -282,15 +282,14 @@ class Controller {
 
     try {
       const views = this._gatherViews();
-      views.forEach(view => { view.model = model });
-
-      // const done = Promise.all(views.map(view => view.transition.didComplete));
+      const promises = views.map(view => view.setModel(model));
+      const done = Promise.all(promises);
 
       const doc = await model.doc;
       this._throwOnUnknownViews(doc);
       this._options.updateDocument(doc);
 
-      // await done;
+      await done;
       dispatch(window, "pagedidupdate", model.getBlueprint());
     } catch (err) {
       console.error(err);

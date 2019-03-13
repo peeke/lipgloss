@@ -115,10 +115,6 @@ class View {
     return this._model
   }
 
-  set model(model) {
-    this._setModel(model)
-  }
-
   /**
    * Set the model associated with this view
    * Has three flows:
@@ -127,7 +123,7 @@ class View {
    *   3. The view is not included in the Model, deactivate
    * @param {Model} model
    */
-  async _setModel(model) {
+  async setModel(model) {
     if (model && model.equals(this._model)) {
       this._transition.done()
       return
