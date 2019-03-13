@@ -3,8 +3,8 @@ import Transition from './Transition'
 import Model from './Model'
 import attributes from './Attributes'
 import AttributeList from './AttributeList'
+import { dispatch } from "./util";
 
-const eventOptions = { bubbles: true, cancelable: true }
 const errorViewNotFound = name => {
   return new Error(
     `View '${name}' activated, but not found in the loaded document (maybe you've provided it as a hint?).`
@@ -78,6 +78,7 @@ class View {
    * @param {boolean} bool - Active
    */
   set active(bool) {
+    if (this._active === bool) return
     this._active = bool
     this._element.setAttribute(attributes.dict.viewActive, bool)
     this._activeList.toggle(this._options.name, bool)
@@ -102,9 +103,9 @@ class View {
    * @param {boolean} bool
    */
   set loading(bool) {
+    if (this._isLoading === bool) return
     this._isLoading = bool
     this._loadingList.toggle(this._options.name, bool)
-    const action = bool ? 'add' : 'remove'
   }
 
   /**
@@ -112,6 +113,10 @@ class View {
    */
   get model() {
     return this._model
+  }
+
+  set model(model) {
+    this._setModel(model)
   }
 
   /**
@@ -122,7 +127,7 @@ class View {
    *   3. The view is not included in the Model, deactivate
    * @param {Model} model
    */
-  async setModel(model) {
+  async _setModel(model) {
     if (model && model.equals(this._model)) {
       this._transition.done()
       return
@@ -226,22 +231,18 @@ class View {
 
   async _enter(node, doc) {
     this._transition.enterStart()
-    this._dispatch('viewwillenter')
+    dispatch(this._element, 'viewwillenter')
     await this._transition.enter(node, doc)
-    this._dispatch('viewdidenter')
+    dispatch(this._element, 'viewdidenter')
     this._transition.enterDone()
   }
 
   async _exit() {
     this._transition.exitStart()
-    this._dispatch('viewwillexit')
+    dispatch(this._element, 'viewwillexit')
     await this._transition.exit()
-    this._dispatch('viewdidexit')
+    dispatch(this._element, 'viewdidexit')
     this._transition.exitDone()
-  }
-
-  _dispatch(eventName) {
-    this._element.dispatchEvent(new CustomEvent(eventName, eventOptions))
   }
 }
 

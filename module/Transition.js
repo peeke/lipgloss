@@ -1,7 +1,5 @@
-import attributes from './Attributes'
-
-const reflow = element => element.offsetHeight
-const eventOptions = { bubbles: true, cancelable: true }
+import attributes from "./Attributes";
+import { dispatch, reflow } from "./util";
 
 /**
  * @class Transition
@@ -23,25 +21,25 @@ class Transition {
    * @param {Element} view - The view element
    */
   constructor(view) {
-    this._view = view
-    this.willExit = this.willEnter = this.didExit = this.didEnter = this.didComplete = Promise.resolve()
-    this.exitStart = this.enterStart = this.exitDone = this.enterDone = () => {}
+    this._view = view;
+    this.willExit = this.willEnter = this.didExit = this.didEnter = this.didComplete = Promise.resolve();
+    this.exitStart = this.enterStart = this.exitDone = this.enterDone = () => {};
   }
 
   get view() {
-    return this._view
+    return this._view;
   }
 
   reset() {
-    this.willExit = new Promise(resolve => (this.exitStart = resolve))
-    this.willEnter = new Promise(resolve => (this.enterStart = resolve))
-    this.didExit = new Promise(resolve => (this.exitDone = resolve))
-    this.didEnter = new Promise(resolve => (this.enterDone = resolve))
-    this.didComplete = Promise.all([this.didExit, this.didEnter])
+    this.willExit = new Promise(resolve => (this.exitStart = resolve));
+    this.willEnter = new Promise(resolve => (this.enterStart = resolve));
+    this.didExit = new Promise(resolve => (this.exitDone = resolve));
+    this.didEnter = new Promise(resolve => (this.enterDone = resolve));
+    this.didComplete = Promise.all([this.didExit, this.didEnter]);
   }
 
   async beforeExit() {
-    return
+    return;
   }
 
   /**
@@ -49,9 +47,9 @@ class Transition {
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
   async exit() {
-    this._view.removeAttribute(attributes.dict.transition)
-    reflow(this._view)
-    this._view.setAttribute(attributes.dict.transition, 'out')
+    this._view.removeAttribute(attributes.dict.transition);
+    reflow(this._view);
+    this._view.setAttribute(attributes.dict.transition, "out");
   }
 
   /**
@@ -60,13 +58,13 @@ class Transition {
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'loading'
    */
   async loading() {
-    this._view.removeAttribute(attributes.dict.transition)
-    reflow(this._view)
-    this._view.setAttribute(attributes.dict.transition, 'loading')
+    this._view.removeAttribute(attributes.dict.transition);
+    reflow(this._view);
+    this._view.setAttribute(attributes.dict.transition, "loading");
   }
 
   async beforeEnter() {
-    return
+    return;
   }
 
   /**
@@ -75,10 +73,10 @@ class Transition {
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
   async enter(newNode, newDoc) {
-    this.updateHtml(newNode)
-    this._view.removeAttribute(attributes.dict.transition)
-    reflow(this._view)
-    this._view.setAttribute(attributes.dict.transition, 'in')
+    this.updateHtml(newNode);
+    this._view.removeAttribute(attributes.dict.transition);
+    reflow(this._view);
+    this._view.setAttribute(attributes.dict.transition, "in");
   }
 
   /**
@@ -86,24 +84,22 @@ class Transition {
    * @param {String} newNode - The new views node
    */
   updateHtml(newNode) {
-    this._view.dispatchEvent(
-      new CustomEvent('viewhtmlwillupdate', eventOptions)
-    )
-    this._view.innerHTML = newNode.innerHTML
-    this._view.dispatchEvent(new CustomEvent('viewhtmldidupdate', eventOptions))
+    dispatch(this._view, "viewhtmlwillupdate")
+    this._view.innerHTML = newNode.innerHTML;
+    dispatch(this._view, "viewhtmldidupdate")
   }
 
   /**
    * Cleans up after transitions have completed
    */
   done() {
-    this.exitStart()
-    this.exitDone()
-    this.enterStart()
-    this.enterDone()
-    this._view.removeAttribute(attributes.dict.transition)
-    reflow(this._view)
+    this.exitStart();
+    this.exitDone();
+    this.enterStart();
+    this.enterDone();
+    this._view.removeAttribute(attributes.dict.transition);
+    reflow(this._view);
   }
 }
 
-export default Transition
+export default Transition;

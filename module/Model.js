@@ -1,8 +1,10 @@
-import attributes from './Attributes'
+import attributes from "./Attributes";
+import { dispatch } from "./util";
 
-let modelId = 0
-const newId = () => [Date.now(), modelId++].join('-')
-const isNumber = n => Number(n) === n
+let modelId = 0;
+const modelCache = {};
+const newId = () => [Date.now(), modelId++].join("-");
+const isNumber = n => Number(n) === n;
 
 /**
  * @class Model
@@ -17,31 +19,35 @@ class Model {
    * @param {object} fetchOptions = The options used to fetch the url
    */
   constructor(options, fetchOptions = {}) {
-    this._request = new Request(options.url, fetchOptions)
-    this._hints = options.hints || []
-    this._doc = null
-    this._id = isNumber(options.id) ? options.id : newId()
+    this._request = new Request(options.url, fetchOptions);
+    this._hints = options.hints || [];
+    this._doc = null;
+    this._id = isNumber(options.id) ? options.id : newId();
 
-    window.dispatchEvent(new CustomEvent('modelload'))
+    modelCache[this._id] = this;
+
+    dispatch(window, "modelload");
 
     this._response = fetch(this._request)
       .then(response => (response.ok ? response : Promise.reject()))
       .then(response => {
         // { redirect: 'error' } fallback for IE and some older browsers
-        if (fetchOptions.redirect !== 'error') return response
-        if (options.url !== response.url) return Promise.reject()
-        return response
-      })
+        if (fetchOptions.redirect !== "error") return response;
+        if (options.url !== response.url) return Promise.reject();
+        return response;
+      });
 
     this._response.then(() =>
-      window.dispatchEvent(
-        new CustomEvent('modelloaded', { detail: this.getBlueprint() })
-      )
-    )
+      dispatch(window, "modelloaded", this.getBlueprint())
+    );
+  }
+
+  static getById(id) {
+    return modelCache[id];
   }
 
   get id() {
-    return this._id
+    return this._id;
   }
 
   /**
@@ -49,7 +55,7 @@ class Model {
    * @returns {string}
    */
   get url() {
-    return this._request.url
+    return this._request.url;
   }
 
   /**
@@ -60,13 +66,13 @@ class Model {
     if (!this._doc) {
       this._doc = this._response
         .then(response => response.text())
-        .then(html => new DOMParser().parseFromString(html, 'text/html'))
+        .then(html => new DOMParser().parseFromString(html, "text/html"));
     }
-    return this._doc
+    return this._doc;
   }
 
   hasHint(name) {
-    return this._hints.includes(name)
+    return this._hints.includes(name);
   }
 
   /**
@@ -75,13 +81,13 @@ class Model {
    * @returns {boolean}
    */
   async includesView(name) {
-    const doc = await this.doc
-    return Boolean(doc.querySelector(`[${attributes.dict.view}="${name}"]`))
+    const doc = await this.doc;
+    return Boolean(doc.querySelector(`[${attributes.dict.view}="${name}"]`));
   }
 
   equals(model) {
-    if (!model) return false
-    return this === model || this.id === model.id
+    if (!model) return false;
+    return this === model || this.id === model.id;
   }
 
   /**
@@ -93,8 +99,8 @@ class Model {
    * @returns {{url: string, hints: string[]}}
    */
   getBlueprint() {
-    return { id: this._id, url: this._request.url, hints: this._hints }
+    return { id: this._id, url: this._request.url, hints: this._hints };
   }
 }
 
-export default Model
+export default Model;

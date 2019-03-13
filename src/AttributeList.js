@@ -6,7 +6,7 @@ class AttributeList {
 
   _getList() {
     const string = this._element.getAttribute(this._attribute) || ''
-    return new Set(string.trim().split(' '))
+    return new Set(string.split(' ').filter(Boolean))
   }
 
   add(value) {
