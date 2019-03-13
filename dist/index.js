@@ -353,7 +353,6 @@
      * Initialize a new Model
      * @param {object} options - The configuration for the Model
      * @param {string} options.url - The url to request
-     * @param {array} options.hints=string[] - The views expected to be present on the requested page
      * @param {object} fetchOptions = The options used to fetch the url
      */
     function Model(options) {
@@ -364,7 +363,6 @@
       _classCallCheck(this, Model);
 
       this._request = new Request(options.url, fetchOptions);
-      this._hints = options.hints || [];
       this._doc = null;
       this._id = isNumber(options.id) ? options.id : newId();
       modelCache[this._id] = this;
@@ -384,18 +382,13 @@
     }
 
     _createClass(Model, [{
-      key: "hasHint",
-      value: function hasHint(name) {
-        return this._hints.includes(name);
-      }
+      key: "includesView",
+
       /**
-       * A check to see if name was included the given hints
+       * A check to see if name was included in the document
        * @param {string} name - A name of a view
        * @returns {boolean}
        */
-
-    }, {
-      key: "includesView",
       value: _async$1(function (name) {
         var _this2 = this;
 
@@ -415,7 +408,6 @@
        * @example <caption>Using the model blueprint</caption>
        * const blueprint = model.getBlueprint()
        * const twin = new Model(blueprint, fetchOptions)
-       * @returns {{url: string, hints: string[]}}
        */
 
     }, {
@@ -423,8 +415,7 @@
       value: function getBlueprint() {
         return {
           id: this._id,
-          url: this._request.url,
-          hints: this._hints
+          url: this._request.url
         };
       }
     }, {
@@ -517,6 +508,16 @@
     return AttributeList;
   }();
 
+  function _invoke(body, then) {
+    var result = body();
+
+    if (result && result.then) {
+      return result.then(then);
+    }
+
+    return then(result);
+  }
+
   function _awaitIgnored(value, direct) {
     if (!direct) {
       return value && value.then ? value.then(_empty) : Promise.resolve();
@@ -539,16 +540,6 @@
     };
   }
 
-  function _invoke(body, then) {
-    var result = body();
-
-    if (result && result.then) {
-      return result.then(then);
-    }
-
-    return then(result);
-  }
-
   function _await$2(value, then, direct) {
     if (direct) {
       return then ? then(value) : value;
@@ -562,7 +553,7 @@
   }
 
   var errorViewNotFound = function errorViewNotFound(name) {
-    return new Error("View '".concat(name, "' activated, but not found in the loaded document (maybe you've provided it as a hint?)."));
+    return new Error("View '".concat(name, "' activated, but not found in the loaded document"));
   };
   /**
    * @class View
@@ -630,35 +621,21 @@
           return;
         }
 
-        var isHintedAt = model.hasHint(_this._options.name);
-        return _await$2(isHintedAt || model.includesView(_this._options.name), function (includedInModel) {
-          var _exit2 = false;
-
+        return _await$2(model.includesView(_this._options.name), function (includedInModel) {
           if (!includedInModel) {
             _this._transition.done();
 
             return;
-          } // Take a leap of faith and activate the view based on a hint from the user
+          }
 
-
-          return _invoke(function () {
-            if (isHintedAt) {
-              return _await$2(_this._activate(model), function () {
-                _this._transition.done();
-
-                _exit2 = true;
-              });
-            }
-          }, function (_result) {
-            return _exit2 ? _result : _await$2(model.doc, function (doc) {
-              var node = doc.querySelector(_this._selector);
-              var active = node && Boolean(node.innerHTML.trim());
-              return _await$2(active ? _this._activate(model) : _this._deactivate(), function () {
-                _this._transition.done();
-              });
+          return _await$2(model.doc, function (doc) {
+            var node = doc.querySelector(_this._selector);
+            var active = node && Boolean(node.innerHTML.trim());
+            return _await$2(active ? _this._activate(model) : _this._deactivate(), function () {
+              _this._transition.done();
             });
           });
-        }, isHintedAt);
+        });
       })
       /**
        * @returns {string} - The name of this view
@@ -906,7 +883,6 @@
       /**
        * Controller is a singleton which should be initialized once trough the init() method to set the options
        * @param {object} options - Options
-       * @param {string[]} options.defaultHints - Which views are expected to be present, when a link is loaded with an empty [data-view-link]
        * @param {Object.<string, Transition>} options.transitions - An object containing the Transition's (value) for a given view (property)
        * @param {function(string)} options.sanitizeUrl - A function to transform the url, before it's compared and pushed to the history
        * @param {object} options.fetch - The options to pass into a fetch request
@@ -921,8 +897,7 @@
         var url = this._options.sanitizeUrl(window.location.href);
 
         this._model = new Model({
-          url: url,
-          hints: this._options.defaultHints
+          url: url
         }, this._options.fetch);
         this._queuedModel = this._model;
         this._updatingPage = false;
@@ -1049,7 +1024,7 @@
       }
       /**
        * Handles a click on an element with a [data-view-link] attribute. Loads the document found at [href].
-       * This function calls the _updatePage function and adds a history entry.
+       * This function calls the _setModel function and adds a history entry.
        * @param {Event} e - Click event
        * @private
        */
@@ -1063,39 +1038,32 @@
 
         var url = _this4._options.sanitizeUrl(e.currentTarget.href);
 
-        var viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink);
-        var hints = viewLink ? viewLink.split(",") : _this4._options.defaultHints;
-
-        _this4.openUrl(url, hints);
+        _this4.openUrl(url);
       })
       /**
        *
        * @param {String} url - The url to open.
-       * @param {Array<String>|String} hints - The views to update. Can be either a string or an array with multiple strings.
        * @param {Object} fetchOptions - The options to pass to fetch().
        */
 
     }, {
       key: "openUrl",
       value: function openUrl(url) {
-        var hints = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this._options.defaultHints;
-        var fetchOptions = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this._options.fetch;
-        hints = Array.isArray(hints) ? hints : [hints];
+        var fetchOptions = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this._options.fetch;
         var model = new Model({
-          url: url,
-          hints: hints
+          url: url
         }, fetchOptions);
 
         var samePage = this._model && this._model.equals(model);
 
-        this._queuePageUpdate(model);
+        this._queueModel(model);
 
         this._addHistoryEntry(model, samePage);
       }
       /**
        * Handles a click on an element with a [data-deactivate-view="viewname"] attribute.
        * Navigates to the current url of View next up in the ViewOrder. This is particularly useful when you want to close an overlay or lightbox.
-       * This function calls the _updatePage function and adds a history entry.
+       * This function calls the _setModel function and adds a history entry.
        * @param {Event} e - Click event
        * @private
        */
@@ -1125,7 +1093,7 @@
           throw new Error("Unable to deactivate view ".concat(name, ", because there's no view to fall back to."));
         }
 
-        this._queuePageUpdate(newView.model);
+        this._queueModel(newView.model);
 
         this._addHistoryEntry(newView.model);
       }
@@ -1157,7 +1125,7 @@
           // We use an existing model (if it exists) so we don't have to refetch the associated request
           var _model = Model.getById(e.state.model.id) || new Model(e.state.model, this._options.fetch);
 
-          this._queuePageUpdate(_model);
+          this._queueModel(_model);
         } catch (err) {
           console.error(err);
           window.location.href = model.url;
@@ -1170,12 +1138,12 @@
        */
 
     }, {
-      key: "_queuePageUpdate",
-      value: function _queuePageUpdate(model) {
+      key: "_queueModel",
+      value: function _queueModel(model) {
         this._queuedModel = model;
         if (this._updatingPage) return;
 
-        this._updatePage(model);
+        this._setModel(model);
       }
       /**
        * Updates given views in a page with a new model
@@ -1185,17 +1153,17 @@
        */
 
     }, {
-      key: "_updatePage",
+      key: "_setModel",
       value: _async$3(function (model) {
         var _this5 = this;
 
         _this5._updatingPage = true;
-        dispatch(window, "pagewillupdate", model.getBlueprint());
+        dispatch(window, "pagewillupdate");
         _this5._model = model;
         return _continue(_catch(function () {
           var views = _this5._gatherViews();
 
-          var promises = views.map(function (view) {
+          var setModelPromises = views.map(function (view) {
             return view.setModel(model);
           });
           return _await$3(model.doc, function (doc) {
@@ -1203,16 +1171,18 @@
 
             _this5._options.updateDocument(doc);
 
-            return _await$3(Promise.all(promises), function () {
-              dispatch(window, "pagedidupdate", model.getBlueprint());
+            return _await$3(Promise.all(setModelPromises), function () {
+              dispatch(window, "pagedidupdate");
             });
           });
         }, function (err) {
           console.error(err);
           window.location.href = model.url;
         }), function () {
+          _this5._updatingPage = false;
+
           if (_this5._queuedModel !== model) {
-            _this5._updatePage(_this5._queuedModel);
+            _this5._setModel(_this5._queuedModel);
           }
         });
       })
@@ -1240,7 +1210,6 @@
       key: "options",
       get: function get() {
         return {
-          defaultHints: [],
           transitions: {},
           sanitizeUrl: function sanitizeUrl(url) {
             return url;

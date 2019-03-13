@@ -7,7 +7,7 @@ import { dispatch } from "./util";
 
 const errorViewNotFound = name => {
   return new Error(
-    `View '${name}' activated, but not found in the loaded document (maybe you've provided it as a hint?).`
+    `View '${name}' activated, but not found in the loaded document`
   )
 }
 
@@ -129,18 +129,9 @@ class View {
       return
     }
 
-    const isHintedAt = model.hasHint(this._options.name)
-    const includedInModel =
-      isHintedAt || (await model.includesView(this._options.name))
+    const includedInModel = (await model.includesView(this._options.name))
 
     if (!includedInModel) {
-      this._transition.done()
-      return
-    }
-
-    // Take a leap of faith and activate the view based on a hint from the user
-    if (isHintedAt) {
-      await this._activate(model)
       this._transition.done()
       return
     }

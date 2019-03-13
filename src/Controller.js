@@ -15,7 +15,6 @@ class Controller {
   /**
    * Controller is a singleton which should be initialized once trough the init() method to set the options
    * @param {object} options - Options
-   * @param {string[]} options.defaultHints - Which views are expected to be present, when a link is loaded with an empty [data-view-link]
    * @param {Object.<string, Transition>} options.transitions - An object containing the Transition's (value) for a given view (property)
    * @param {function(string)} options.sanitizeUrl - A function to transform the url, before it's compared and pushed to the history
    * @param {object} options.fetch - The options to pass into a fetch request
@@ -30,9 +29,10 @@ class Controller {
 
     const url = this._options.sanitizeUrl(window.location.href);
     this._model = new Model(
-      { url, hints: this._options.defaultHints },
+      { url },
       this._options.fetch
     );
+    
     this._queuedModel = this._model;
     this._updatingPage = false;
 
@@ -52,7 +52,6 @@ class Controller {
    */
   static get options() {
     return {
-      defaultHints: [],
       transitions: {},
       sanitizeUrl: url => url,
       updateDocument: doc => {
@@ -162,40 +161,35 @@ class Controller {
 
   /**
    * Handles a click on an element with a [data-view-link] attribute. Loads the document found at [href].
-   * This function calls the _updatePage function and adds a history entry.
+   * This function calls the _setModel function and adds a history entry.
    * @param {Event} e - Click event
    * @private
    */
   async _onLinkClick(e) {
     e.preventDefault();
     const url = this._options.sanitizeUrl(e.currentTarget.href);
-    const viewLink = e.currentTarget.getAttribute(attributes.dict.viewLink);
-    const hints = viewLink ? viewLink.split(",") : this._options.defaultHints;
-    this.openUrl(url, hints);
+    this.openUrl(url);
   }
 
   /**
    *
    * @param {String} url - The url to open.
-   * @param {Array<String>|String} hints - The views to update. Can be either a string or an array with multiple strings.
    * @param {Object} fetchOptions - The options to pass to fetch().
    */
   openUrl(
     url,
-    hints = this._options.defaultHints,
     fetchOptions = this._options.fetch
   ) {
-    hints = Array.isArray(hints) ? hints : [hints];
-    const model = new Model({ url, hints }, fetchOptions);
+    const model = new Model({ url }, fetchOptions);
     const samePage = this._model && this._model.equals(model);
-    this._queuePageUpdate(model);
+    this._queueModel(model);
     this._addHistoryEntry(model, samePage);
   }
 
   /**
    * Handles a click on an element with a [data-deactivate-view="viewname"] attribute.
    * Navigates to the current url of View next up in the ViewOrder. This is particularly useful when you want to close an overlay or lightbox.
-   * This function calls the _updatePage function and adds a history entry.
+   * This function calls the _setModel function and adds a history entry.
    * @param {Event} e - Click event
    * @private
    */
@@ -219,7 +213,7 @@ class Controller {
       );
     }
 
-    this._queuePageUpdate(newView.model);
+    this._queueModel(newView.model);
     this._addHistoryEntry(newView.model);
   }
 
@@ -249,7 +243,7 @@ class Controller {
       const model =
         Model.getById(e.state.model.id) ||
         new Model(e.state.model, this._options.fetch);
-      this._queuePageUpdate(model);
+      this._queueModel(model);
     } catch (err) {
       console.error(err);
       window.location.href = model.url;
@@ -261,10 +255,10 @@ class Controller {
    * @param {Model} model - The model to update the page with
    * @private
    */
-  _queuePageUpdate(model) {
+  _queueModel(model) {
     this._queuedModel = model;
     if (this._updatingPage) return;
-    this._updatePage(model);
+    this._setModel(model);
   }
 
   /**
@@ -273,30 +267,31 @@ class Controller {
    * @returns {Promise.<void>} - Resolves when updating the page is done
    * @private
    */
-  async _updatePage(model) {
+  async _setModel(model) {
     this._updatingPage = true;
 
-    dispatch(window, "pagewillupdate", model.getBlueprint());
+    dispatch(window, "pagewillupdate");
 
     this._model = model;
 
     try {
       const views = this._gatherViews();
-      const promises = views.map(view => view.setModel(model));
+      const setModelPromises = views.map(view => view.setModel(model));
 
       const doc = await model.doc;
       this._throwOnUnknownViews(doc);
       this._options.updateDocument(doc);
 
-      await Promise.all(promises);
-      dispatch(window, "pagedidupdate", model.getBlueprint());
+      await Promise.all(setModelPromises);
+      dispatch(window, "pagedidupdate");
     } catch (err) {
       console.error(err);
       window.location.href = model.url;
     }
 
+    this._updatingPage = false
     if (this._queuedModel !== model) {
-      this._updatePage(this._queuedModel);
+      this._setModel(this._queuedModel);
     }
   }
 

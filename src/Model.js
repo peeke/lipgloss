@@ -15,12 +15,10 @@ class Model {
    * Initialize a new Model
    * @param {object} options - The configuration for the Model
    * @param {string} options.url - The url to request
-   * @param {array} options.hints=string[] - The views expected to be present on the requested page
    * @param {object} fetchOptions = The options used to fetch the url
    */
   constructor(options, fetchOptions = {}) {
     this._request = new Request(options.url, fetchOptions);
-    this._hints = options.hints || [];
     this._doc = null;
     this._id = isNumber(options.id) ? options.id : newId();
 
@@ -71,12 +69,8 @@ class Model {
     return this._doc;
   }
 
-  hasHint(name) {
-    return this._hints.includes(name);
-  }
-
   /**
-   * A check to see if name was included the given hints
+   * A check to see if name was included in the document
    * @param {string} name - A name of a view
    * @returns {boolean}
    */
@@ -96,10 +90,9 @@ class Model {
    * @example <caption>Using the model blueprint</caption>
    * const blueprint = model.getBlueprint()
    * const twin = new Model(blueprint, fetchOptions)
-   * @returns {{url: string, hints: string[]}}
    */
   getBlueprint() {
-    return { id: this._id, url: this._request.url, hints: this._hints };
+    return { id: this._id, url: this._request.url };
   }
 }
 
