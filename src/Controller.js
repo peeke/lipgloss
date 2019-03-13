@@ -81,32 +81,6 @@ class Controller {
     );
   }
 
-  // _transitionAction(viewName, action) {
-  //   const view = this._getViewByName(viewName);
-  //   if (!view) return Promise.resolve();
-  //   return view.transition[action];
-  // }
-
-  // didExit(name) {
-  //   return this._transitionAction(name, "didExit");
-  // }
-
-  // didEnter(name) {
-  //   return this._transitionAction(name, "didEnter");
-  // }
-
-  // didComplete(name) {
-  //   return this._transitionAction(name, "didComplete");
-  // }
-
-  // willEnter(name) {
-  //   return this._transitionAction(name, "willEnter");
-  // }
-
-  // willExit(name) {
-  //   return this._transitionAction(name, "willExit");
-  // }
-
   isActive(name) {
     const view = this._getViewByName(name);
     return view && view.active;
@@ -308,16 +282,15 @@ class Controller {
 
     try {
       const views = this._gatherViews();
-      views.forEach(view => view.transition.reset());
       views.forEach(view => { view.model = model });
 
-      const done = Promise.all(views.map(view => view.transition.didComplete));
+      // const done = Promise.all(views.map(view => view.transition.didComplete));
 
       const doc = await model.doc;
       this._throwOnUnknownViews(doc);
       this._options.updateDocument(doc);
 
-      await done;
+      // await done;
       dispatch(window, "pagedidupdate", model.getBlueprint());
     } catch (err) {
       console.error(err);

@@ -22,20 +22,10 @@ class Transition {
    */
   constructor(view) {
     this._view = view;
-    this.willExit = this.willEnter = this.didExit = this.didEnter = this.didComplete = Promise.resolve();
-    this.exitStart = this.enterStart = this.exitDone = this.enterDone = () => {};
   }
 
   get view() {
     return this._view;
-  }
-
-  reset() {
-    this.willExit = new Promise(resolve => (this.exitStart = resolve));
-    this.willEnter = new Promise(resolve => (this.enterStart = resolve));
-    this.didExit = new Promise(resolve => (this.exitDone = resolve));
-    this.didEnter = new Promise(resolve => (this.enterDone = resolve));
-    this.didComplete = Promise.all([this.didExit, this.didEnter]);
   }
 
   async beforeExit() {
@@ -93,10 +83,6 @@ class Transition {
    * Cleans up after transitions have completed
    */
   done() {
-    this.exitStart();
-    this.exitDone();
-    this.enterStart();
-    this.enterDone();
     this._view.removeAttribute(attributes.dict.transition);
     reflow(this._view);
   }

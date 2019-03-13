@@ -220,30 +220,9 @@ function _await$2(value, then, direct) {
     classCallCheck(this, Transition);
 
     this._view = view;
-    this.willExit = this.willEnter = this.didExit = this.didEnter = this.didComplete = Promise.resolve();
-    this.exitStart = this.enterStart = this.exitDone = this.enterDone = function () {};
   }
 
   createClass(Transition, [{
-    key: "reset",
-    value: function reset() {
-      var _this = this;
-
-      this.willExit = new Promise(function (resolve) {
-        return _this.exitStart = resolve;
-      });
-      this.willEnter = new Promise(function (resolve) {
-        return _this.enterStart = resolve;
-      });
-      this.didExit = new Promise(function (resolve) {
-        return _this.exitDone = resolve;
-      });
-      this.didEnter = new Promise(function (resolve) {
-        return _this.enterDone = resolve;
-      });
-      this.didComplete = Promise.all([this.didExit, this.didEnter]);
-    }
-  }, {
     key: "beforeExit",
     value: function () {
       return _await$2();
@@ -257,11 +236,11 @@ function _await$2(value, then, direct) {
   }, {
     key: "exit",
     value: _async$2(function () {
-      var _this2 = this;
+      var _this = this;
 
-      _this2._view.removeAttribute(attributes.dict.transition);
-      reflow(_this2._view);
-      _this2._view.setAttribute(attributes.dict.transition, "out");
+      _this._view.removeAttribute(attributes.dict.transition);
+      reflow(_this._view);
+      _this._view.setAttribute(attributes.dict.transition, "out");
     })
 
     /**
@@ -273,11 +252,11 @@ function _await$2(value, then, direct) {
   }, {
     key: "loading",
     value: _async$2(function () {
-      var _this3 = this;
+      var _this2 = this;
 
-      _this3._view.removeAttribute(attributes.dict.transition);
-      reflow(_this3._view);
-      _this3._view.setAttribute(attributes.dict.transition, "loading");
+      _this2._view.removeAttribute(attributes.dict.transition);
+      reflow(_this2._view);
+      _this2._view.setAttribute(attributes.dict.transition, "loading");
     })
   }, {
     key: "beforeEnter",
@@ -294,12 +273,12 @@ function _await$2(value, then, direct) {
   }, {
     key: "enter",
     value: _async$2(function (newNode, newDoc) {
-      var _this4 = this;
+      var _this3 = this;
 
-      _this4.updateHtml(newNode);
-      _this4._view.removeAttribute(attributes.dict.transition);
-      reflow(_this4._view);
-      _this4._view.setAttribute(attributes.dict.transition, "in");
+      _this3.updateHtml(newNode);
+      _this3._view.removeAttribute(attributes.dict.transition);
+      reflow(_this3._view);
+      _this3._view.setAttribute(attributes.dict.transition, "in");
     })
 
     /**
@@ -322,10 +301,6 @@ function _await$2(value, then, direct) {
   }, {
     key: "done",
     value: function done() {
-      this.exitStart();
-      this.exitDone();
-      this.enterStart();
-      this.enterDone();
       this._view.removeAttribute(attributes.dict.transition);
       reflow(this._view);
     }
@@ -709,9 +684,6 @@ var View = function () {
           return _await$1(_this2._transition.beforeExit(), function () {
             return _awaitIgnored(_this2._exit());
           });
-        } else {
-          _this2._transition.exitStart();
-          _this2._transition.exitDone();
         }
       }, function () {
         return _invoke(function () {
@@ -775,11 +747,9 @@ var View = function () {
     value: _async$1(function (node, doc) {
       var _this4 = this;
 
-      _this4._transition.enterStart();
       dispatch(_this4._element, 'viewwillenter');
       return _await$1(_this4._transition.enter(node, doc), function () {
         dispatch(_this4._element, 'viewdidenter');
-        _this4._transition.enterDone();
       });
     })
   }, {
@@ -787,11 +757,9 @@ var View = function () {
     value: _async$1(function () {
       var _this5 = this;
 
-      _this5._transition.exitStart();
       dispatch(_this5._element, 'viewwillexit');
       return _await$1(_this5._transition.exit(), function () {
         dispatch(_this5._element, 'viewdidexit');
-        _this5._transition.exitDone();
       });
     })
   }, {
@@ -992,33 +960,6 @@ var Controller = function () {
         return _this._viewsMap.get(element);
       });
     }
-
-    // _transitionAction(viewName, action) {
-    //   const view = this._getViewByName(viewName);
-    //   if (!view) return Promise.resolve();
-    //   return view.transition[action];
-    // }
-
-    // didExit(name) {
-    //   return this._transitionAction(name, "didExit");
-    // }
-
-    // didEnter(name) {
-    //   return this._transitionAction(name, "didEnter");
-    // }
-
-    // didComplete(name) {
-    //   return this._transitionAction(name, "didComplete");
-    // }
-
-    // willEnter(name) {
-    //   return this._transitionAction(name, "willEnter");
-    // }
-
-    // willExit(name) {
-    //   return this._transitionAction(name, "willExit");
-    // }
-
   }, {
     key: "isActive",
     value: function isActive(name) {
@@ -1256,23 +1197,17 @@ var Controller = function () {
       return _continue(_catch(function () {
         var views = _this5._gatherViews();
         views.forEach(function (view) {
-          return view.transition.reset();
-        });
-        views.forEach(function (view) {
           view.model = model;
         });
 
-        var done = Promise.all(views.map(function (view) {
-          return view.transition.didComplete;
-        }));
+        // const done = Promise.all(views.map(view => view.transition.didComplete));
 
         return _await(model.doc, function (doc) {
           _this5._throwOnUnknownViews(doc);
           _this5._options.updateDocument(doc);
 
-          return _await(done, function () {
-            dispatch(window, "pagedidupdate", model.getBlueprint());
-          });
+          // await done;
+          dispatch(window, "pagedidupdate", model.getBlueprint());
         });
       }, function (err) {
         console.error(err);

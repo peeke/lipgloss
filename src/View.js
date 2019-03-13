@@ -180,9 +180,6 @@ class View {
     if (this.active) {
       await this._transition.beforeExit()
       await this._exit()
-    } else {
-      this._transition.exitStart()
-      this._transition.exitDone()
     }
 
     if (this.loading) {
@@ -230,19 +227,15 @@ class View {
   }
 
   async _enter(node, doc) {
-    this._transition.enterStart()
     dispatch(this._element, 'viewwillenter')
     await this._transition.enter(node, doc)
     dispatch(this._element, 'viewdidenter')
-    this._transition.enterDone()
   }
 
   async _exit() {
-    this._transition.exitStart()
     dispatch(this._element, 'viewwillexit')
     await this._transition.exit()
     dispatch(this._element, 'viewdidexit')
-    this._transition.exitDone()
   }
 }
 
