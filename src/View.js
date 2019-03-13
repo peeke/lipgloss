@@ -1,7 +1,7 @@
 import ViewOrder from "./ViewOrder";
 import Transition from "./Transition";
 import Model from "./Model";
-import attributes from "./Attributes";
+import attributes from "./attributes";
 import { dispatch, attributeList } from "./util";
 
 const errorViewNotFound = name => {
@@ -30,7 +30,7 @@ class View {
     this.active = this.visible = !!this._element.innerHTML.trim();
 
     this._model = this._options.model;
-    this._selector = `[${attributes.dict.view}="${this._options.name}"]`;
+    this._selector = `[${attributes.view}="${this._options.name}"]`;
     this._transition = new this._options.transition(this._element);
 
     if (this.active) {
@@ -69,14 +69,14 @@ class View {
   set active(bool) {
     if (this._active === bool) return;
     this._active = bool;
-    this._element.setAttribute(attributes.dict.viewActive, bool);
+    this._element.setAttribute(attributes.viewActive, bool);
     attributeList.toggle(document.body, "data-views-active", this.name, bool);
   }
 
   set visible(bool) {
     if (this._visible === bool) return;
     this._visible = bool;
-    this._element.setAttribute(attributes.dict.viewActive, bool);
+    this._element.setAttribute(attributes.viewActive, bool);
     attributeList.toggle(document.body, "data-views-visible", this.name, bool);
   }
 
@@ -96,7 +96,7 @@ class View {
     this._isLoading = bool;
     attributeList.toggle(
       document.body,
-      attributes.dict.viewsLoading,
+      attributes.viewsLoading,
       this.name,
       bool
     );
@@ -163,7 +163,7 @@ class View {
 
     if (this.active) {
       await this._transition.beforeExit();
-      await this._exit();
+      await this._exit(model.doc);
     }
 
     const doc = await model.doc;
@@ -210,9 +210,9 @@ class View {
     dispatch(this._element, "viewdidenter");
   }
 
-  async _exit() {
+  async _exit(doc) {
     dispatch(this._element, "viewwillexit");
-    await this._transition.exit();
+    await this._transition.exit(doc);
     dispatch(this._element, "viewdidexit");
   }
 }

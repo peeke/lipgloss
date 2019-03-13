@@ -160,56 +160,16 @@
 
   var ViewOrder$1 = new ViewOrder();
 
-  /**
-   * @class Attributes
-   * @classdesc Attribute configuration class for Lipgloss
-   */
-  var Attributes =
-  /*#__PURE__*/
-  function () {
-    /**
-     * Unless overwritten, the default attributes are used
-     */
-    function Attributes() {
-      _classCallCheck(this, Attributes);
-
-      this._attributes = {
-        view: 'data-view',
-        slot: 'data-view-slot',
-        viewLink: 'data-view-link',
-        viewActive: 'data-view-active',
-        viewsLoading: 'data-views-loading',
-        viewsActive: 'data-views-active',
-        deactivateView: 'data-deactivate-view',
-        transition: 'data-transition'
-      };
-    }
-    /**
-     * Returns the dictionary with attributes
-     */
-
-
-    _createClass(Attributes, [{
-      key: "assign",
-
-      /**
-       * Overwrite the default attributes
-       * @param {object} attributes - Object with the attributes you want to overwrite. The values of the object are the new attribute names.
-       */
-      value: function assign(attributes) {
-        this._attributes = Object.assign(this._attributes, attributes);
-      }
-    }, {
-      key: "dict",
-      get: function get() {
-        return this._attributes;
-      }
-    }]);
-
-    return Attributes;
-  }();
-
-  var attributes = new Attributes();
+  var attributes = {
+    view: 'data-view',
+    slot: 'data-view-slot',
+    viewLink: 'data-view-link',
+    viewActive: 'data-view-active',
+    viewsLoading: 'data-views-loading',
+    viewsActive: 'data-views-active',
+    deactivateView: 'data-deactivate-view',
+    transition: 'data-transition'
+  };
 
   var listen = function listen(elements, event, fn) {
     var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
@@ -322,11 +282,11 @@
       value: _async(function () {
         var _this = this;
 
-        _this._view.removeAttribute(attributes.dict.transition);
+        _this._view.removeAttribute(attributes.transition);
 
         reflow(_this._view);
 
-        _this._view.setAttribute(attributes.dict.transition, "out");
+        _this._view.setAttribute(attributes.transition, "out");
       })
     }, {
       key: "beforeEnter",
@@ -346,11 +306,11 @@
 
         _this2.updateHtml(newNode);
 
-        _this2._view.removeAttribute(attributes.dict.transition);
+        _this2._view.removeAttribute(attributes.transition);
 
         reflow(_this2._view);
 
-        _this2._view.setAttribute(attributes.dict.transition, "in");
+        _this2._view.setAttribute(attributes.transition, "in");
       })
       /**
        * Updates the view element with new HTML and dispatches the 'viewhtmldidupdate' lifecycle event
@@ -371,7 +331,7 @@
     }, {
       key: "done",
       value: function done() {
-        this._view.removeAttribute(attributes.dict.transition);
+        this._view.removeAttribute(attributes.transition);
 
         reflow(this._view);
       }
@@ -462,7 +422,7 @@
         var _this = this;
 
         return _await$1(_this.doc, function (doc) {
-          return Boolean(doc.querySelector("[".concat(attributes.dict.view, "=\"").concat(name, "\"]")));
+          return Boolean(doc.querySelector("[".concat(attributes.view, "=\"").concat(name, "\"]")));
         });
       })
     }, {
@@ -587,7 +547,7 @@
       this._options = Object.assign(View.options, options);
       this.active = this.visible = !!this._element.innerHTML.trim();
       this._model = this._options.model;
-      this._selector = "[".concat(attributes.dict.view, "=\"").concat(this._options.name, "\"]");
+      this._selector = "[".concat(attributes.view, "=\"").concat(this._options.name, "\"]");
       this._transition = new this._options.transition(this._element);
 
       if (this.active) {
@@ -743,7 +703,7 @@
         if (this._active === bool) return;
         this._active = bool;
 
-        this._element.setAttribute(attributes.dict.viewActive, bool);
+        this._element.setAttribute(attributes.viewActive, bool);
 
         attributeList.toggle(document.body, "data-views-active", this.name, bool);
       }
@@ -753,7 +713,7 @@
         if (this._visible === bool) return;
         this._visible = bool;
 
-        this._element.setAttribute(attributes.dict.viewActive, bool);
+        this._element.setAttribute(attributes.viewActive, bool);
 
         attributeList.toggle(document.body, "data-views-visible", this.name, bool);
       }
@@ -774,7 +734,7 @@
       set: function set(bool) {
         if (this._isLoading === bool) return;
         this._isLoading = bool;
-        attributeList.toggle(document.body, attributes.dict.viewsLoading, this.name, bool);
+        attributeList.toggle(document.body, attributes.viewsLoading, this.name, bool);
       }
       /**
        * @returns {string} - The name of this view
@@ -867,7 +827,7 @@
   var SUPPORTED = "pushState" in history;
 
   var viewSelector = function viewSelector(name) {
-    return "\n  [".concat(attributes.dict.view, "=").concat(name, "],\n  [").concat(attributes.dict.slot, "=").concat(name, "]\n");
+    return "\n  [".concat(attributes.view, "=").concat(name, "],\n  [").concat(attributes.slot, "=").concat(name, "]\n");
   };
   /**
    * @class Controller
@@ -898,7 +858,7 @@
         this._options = Object.assign({}, Controller.options, options);
         this._viewsMap = new WeakMap();
         this._views = [];
-        attributes.assign(this._options.attributes);
+        Object.assign(attributes, this._options.attributes);
 
         var url = this._options.sanitizeUrl(window.location.href);
 
@@ -958,7 +918,7 @@
       value: function initializeContext(context) {
         var _this2 = this;
 
-        var selector = "[".concat(attributes.dict.view, "], [").concat(attributes.dict.slot, "]");
+        var selector = "[".concat(attributes.view, "], [").concat(attributes.slot, "]");
         Array.from(context.querySelectorAll(selector)).filter(function (element) {
           return !_this2._viewsMap.has(element);
         }).forEach(function (element) {
@@ -968,8 +928,8 @@
 
           _this2._views.push(view);
         });
-        listen(context.querySelectorAll("[href][".concat(attributes.dict.viewLink, "]")), "click", this._onLinkClick);
-        listen(context.querySelectorAll("[".concat(attributes.dict.deactivateView, "]")), "click", this._onDeactivateViewClick);
+        listen(context.querySelectorAll("[href][".concat(attributes.viewLink, "]")), "click", this._onLinkClick);
+        listen(context.querySelectorAll("[".concat(attributes.deactivateView, "]")), "click", this._onDeactivateViewClick);
       }
       /**
        * Creates a View component based on a given element and an initial model
@@ -982,7 +942,7 @@
     }, {
       key: "_createView",
       value: function _createView(element, model) {
-        var name = element.getAttribute(attributes.dict.view) || element.getAttribute(attributes.dict.slot);
+        var name = element.getAttribute(attributes.view) || element.getAttribute(attributes.slot);
         var transition = this._options.transitions[name] || Transition;
         return new View(element, {
           name: name,
@@ -1040,7 +1000,7 @@
       key: "_onDeactivateViewClick",
       value: function _onDeactivateViewClick(e) {
         e.preventDefault();
-        var name = e.currentTarget.getAttribute(attributes.dict.deactivateView);
+        var name = e.currentTarget.getAttribute(attributes.deactivateView);
         this.deactivateView(name);
       }
       /**

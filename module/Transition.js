@@ -1,4 +1,4 @@
-import attributes from "./Attributes";
+import attributes from "./attributes";
 import { dispatch, reflow } from "./util";
 
 /**
@@ -37,9 +37,9 @@ class Transition {
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
   async exit() {
-    this._view.removeAttribute(attributes.dict.transition);
+    this._view.removeAttribute(attributes.transition);
     reflow(this._view);
-    this._view.setAttribute(attributes.dict.transition, "out");
+    this._view.setAttribute(attributes.transition, "out");
   }
 
   async beforeEnter() {
@@ -53,9 +53,9 @@ class Transition {
    */
   async enter(newNode, newDoc) {
     this.updateHtml(newNode);
-    this._view.removeAttribute(attributes.dict.transition);
+    this._view.removeAttribute(attributes.transition);
     reflow(this._view);
-    this._view.setAttribute(attributes.dict.transition, "in");
+    this._view.setAttribute(attributes.transition, "in");
   }
 
   /**
@@ -72,7 +72,7 @@ class Transition {
    * Cleans up after transitions have completed
    */
   done() {
-    this._view.removeAttribute(attributes.dict.transition);
+    this._view.removeAttribute(attributes.transition);
     reflow(this._view);
   }
 }

@@ -2,14 +2,14 @@ import View from "./View";
 import ViewOrder from "./ViewOrder";
 import Model from "./Model";
 import Transition from "./Transition";
-import attributes from "./Attributes";
+import attributes from "./attributes";
 import { listen, dispatch } from "./util";
 
 const SUPPORTED = "pushState" in history;
 
 const viewSelector = name => `
-  [${attributes.dict.view}=${name}],
-  [${attributes.dict.slot}=${name}]
+  [${attributes.view}=${name}],
+  [${attributes.slot}=${name}]
 `;
 
 /**
@@ -31,7 +31,7 @@ class Controller {
     this._viewsMap = new WeakMap();
     this._views = [];
 
-    attributes.assign(this._options.attributes);
+    Object.assign(attributes, this._options.attributes);
 
     const url = this._options.sanitizeUrl(window.location.href);
     this._model = new Model({ url }, this._options.fetch);
@@ -95,7 +95,7 @@ class Controller {
    * @param {Element} context - The context to intialize
    */
   initializeContext(context) {
-    const selector = `[${attributes.dict.view}], [${attributes.dict.slot}]`;
+    const selector = `[${attributes.view}], [${attributes.slot}]`;
 
     Array.from(context.querySelectorAll(selector))
       .filter(element => !this._viewsMap.has(element))
@@ -106,13 +106,13 @@ class Controller {
       });
 
     listen(
-      context.querySelectorAll(`[href][${attributes.dict.viewLink}]`),
+      context.querySelectorAll(`[href][${attributes.viewLink}]`),
       "click",
       this._onLinkClick
     );
 
     listen(
-      context.querySelectorAll(`[${attributes.dict.deactivateView}]`),
+      context.querySelectorAll(`[${attributes.deactivateView}]`),
       "click",
       this._onDeactivateViewClick
     );
@@ -127,8 +127,8 @@ class Controller {
    */
   _createView(element, model) {
     const name =
-      element.getAttribute(attributes.dict.view) ||
-      element.getAttribute(attributes.dict.slot);
+      element.getAttribute(attributes.view) ||
+      element.getAttribute(attributes.slot);
     const transition = this._options.transitions[name] || Transition;
     return new View(element, { name, transition, model });
   }
@@ -166,7 +166,7 @@ class Controller {
    */
   _onDeactivateViewClick(e) {
     e.preventDefault();
-    const name = e.currentTarget.getAttribute(attributes.dict.deactivateView);
+    const name = e.currentTarget.getAttribute(attributes.deactivateView);
     this.deactivateView(name);
   }
 

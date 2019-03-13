@@ -1,4 +1,4 @@
-import attributes from "./Attributes";
+import attributes from "./attributes";
 import { dispatch } from "./util";
 
 let modelId = 0;
@@ -69,7 +69,7 @@ class Model {
    */
   async includesView(name) {
     const doc = await this.doc;
-    return Boolean(doc.querySelector(`[${attributes.dict.view}="${name}"]`));
+    return Boolean(doc.querySelector(`[${attributes.view}="${name}"]`));
   }
 
   equals(model) {

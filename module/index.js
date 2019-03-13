@@ -1,5 +1,5 @@
 import Controller from './Controller'
-import Attributes from './Attributes'
+import Attributes from './attributes'
 import View from './View'
 import Model from './Model'
 import Transition from './Transition'
