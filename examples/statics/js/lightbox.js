@@ -231,6 +231,29 @@
     return element.offsetHeight;
   };
 
+  var attributeList = {
+    list: function list(element, attribute) {
+      var string = element.getAttribute(attribute) || '';
+      return new Set(string.split(' ').filter(Boolean));
+    },
+    add: function add(element, attribute, value) {
+      attributeList.toggle(element, attribute, value, true);
+    },
+    remove: function remove(element, attribute, value) {
+      attributeList.toggle(element, attribute, value, false);
+    },
+    has: function has(element, attribute, value) {
+      return attributeList.list(element, attribute).has(value);
+    },
+    toggle: function toggle(element, attribute, value, force) {
+      var list = attributeList.list(element, attribute);
+      if (typeof force === 'undefined') force = !list.has(value);
+      var action = force ? 'add' : 'delete';
+      list[action](value);
+      element.setAttribute(attribute, Array.from(list).join(' '));
+    }
+  };
+
   function _async(f) {
     return function () {
       for (var args = [], i = 0; i < arguments.length; i++) {
@@ -305,23 +328,6 @@
 
         _this._view.setAttribute(attributes.dict.transition, "out");
       })
-      /**
-       * @description Loading transition for the given view. This transition state will only occur
-       * if the requested document is still loading when exit() completes.
-       * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'loading'
-       */
-
-    }, {
-      key: "loading",
-      value: _async(function () {
-        var _this2 = this;
-
-        _this2._view.removeAttribute(attributes.dict.transition);
-
-        reflow(_this2._view);
-
-        _this2._view.setAttribute(attributes.dict.transition, "loading");
-      })
     }, {
       key: "beforeEnter",
       value: function () {
@@ -336,15 +342,15 @@
     }, {
       key: "enter",
       value: _async(function (newNode, newDoc) {
-        var _this3 = this;
+        var _this2 = this;
 
-        _this3.updateHtml(newNode);
+        _this2.updateHtml(newNode);
 
-        _this3._view.removeAttribute(attributes.dict.transition);
+        _this2._view.removeAttribute(attributes.dict.transition);
 
-        reflow(_this3._view);
+        reflow(_this2._view);
 
-        _this3._view.setAttribute(attributes.dict.transition, "in");
+        _this2._view.setAttribute(attributes.dict.transition, "in");
       })
       /**
        * Updates the view element with new HTML and dispatches the 'viewhtmldidupdate' lifecycle event
@@ -410,10 +416,6 @@
   var newId = function newId() {
     return [Date.now(), modelId++].join("-");
   };
-
-  var isNumber = function isNumber(n) {
-    return Number(n) === n;
-  };
   /**
    * @class Model
    * @classdesc The Model contains all the data needed by a View to update.
@@ -430,17 +432,14 @@
      * @param {object} fetchOptions = The options used to fetch the url
      */
     function Model(options) {
-      var _this = this;
-
       var fetchOptions = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       _classCallCheck(this, Model);
 
       this._request = new Request(options.url, fetchOptions);
       this._doc = null;
-      this._id = isNumber(options.id) ? options.id : newId();
+      this._id = typeof options.id === 'number' ? options.id : newId();
       modelCache[this._id] = this;
-      dispatch(window, "modelload");
       this._response = fetch(this._request).then(function (response) {
         return response.ok ? response : Promise.reject();
       }).then(function (response) {
@@ -448,10 +447,6 @@
         if (fetchOptions.redirect !== "error") return response;
         if (options.url !== response.url) return Promise.reject();
         return response;
-      });
-
-      this._response.then(function () {
-        return dispatch(window, "modelloaded", _this.getBlueprint());
       });
     }
 
@@ -464,9 +459,9 @@
        * @returns {boolean}
        */
       value: _async$1(function (name) {
-        var _this2 = this;
+        var _this = this;
 
-        return _await$1(_this2.doc, function (doc) {
+        return _await$1(_this.doc, function (doc) {
           return Boolean(doc.querySelector("[".concat(attributes.dict.view, "=\"").concat(name, "\"]")));
         });
       })
@@ -474,23 +469,7 @@
       key: "equals",
       value: function equals(model) {
         if (!model) return false;
-        return this === model || this.id === model.id;
-      }
-      /**
-       * Get an object blueprint of the Model, which can be added to the history state. You can pass it to the
-       * options parameter in the constructor to recreate the model:
-       * @example <caption>Using the model blueprint</caption>
-       * const blueprint = model.getBlueprint()
-       * const twin = new Model(blueprint, fetchOptions)
-       */
-
-    }, {
-      key: "getBlueprint",
-      value: function getBlueprint() {
-        return {
-          id: this._id,
-          url: this._request.url
-        };
+        return this.id === model.id;
       }
     }, {
       key: "id",
@@ -533,53 +512,6 @@
     }]);
 
     return Model;
-  }();
-
-  var AttributeList =
-  /*#__PURE__*/
-  function () {
-    function AttributeList(element, attribute) {
-      _classCallCheck(this, AttributeList);
-
-      this._element = element;
-      this._attribute = attribute;
-    }
-
-    _createClass(AttributeList, [{
-      key: "_getList",
-      value: function _getList() {
-        var string = this._element.getAttribute(this._attribute) || '';
-        return new Set(string.split(' ').filter(Boolean));
-      }
-    }, {
-      key: "add",
-      value: function add(value) {
-        this.toggle(value, true);
-      }
-    }, {
-      key: "remove",
-      value: function remove(value) {
-        this.toggle(value, false);
-      }
-    }, {
-      key: "has",
-      value: function has(value) {
-        return this._getList().has(value);
-      }
-    }, {
-      key: "toggle",
-      value: function toggle(value, force) {
-        var list = this._getList();
-
-        if (typeof force === 'undefined') force = !list.has(value);
-        var action = force ? 'add' : 'delete';
-        list[action](value);
-
-        this._element.setAttribute(this._attribute, Array.from(list).join(' '));
-      }
-    }]);
-
-    return AttributeList;
   }();
 
   function _invoke(body, then) {
@@ -653,9 +585,6 @@
 
       this._element = element;
       this._options = Object.assign(View.options, options);
-      this._loadingList = new AttributeList(document.body, attributes.dict.viewsLoading);
-      this._activeList = new AttributeList(document.body, attributes.dict.viewsActive);
-      this._visibleList = new AttributeList(document.body, 'data-views-visible');
       this.active = this.visible = !!this._element.innerHTML.trim();
       this._model = this._options.model;
       this._selector = "[".concat(attributes.dict.view, "=\"").concat(this._options.name, "\"]");
@@ -666,7 +595,7 @@
       }
 
       if (!(this._transition instanceof Transition)) {
-        throw new Error('Provided transition is not an instance of Transition');
+        throw new Error("Provided transition is not an instance of Transition");
       }
     }
     /**
@@ -690,43 +619,37 @@
         var _this = this;
 
         if (model && model.equals(_this._model)) {
-          _this._transition.done();
-
           return;
         }
 
         return _await$2(model.includesView(_this._options.name), function (includedInModel) {
-          if (!includedInModel) {
-            _this._transition.done();
-
-            return;
-          }
-
+          if (!includedInModel) return;
+          dispatch(_this._element, "viewwillupdate");
           return _await$2(model.doc, function (doc) {
             var node = doc.querySelector(_this._selector);
             var active = node && Boolean(node.innerHTML.trim());
-            return _await$2(active ? _this._activate(model) : _this._deactivate(), function () {
+            return _await$2(active ? _this._activate(model) : _this._deactivate(), function (_this$_activate) {
+
               _this._transition.done();
+
+              dispatch(_this._element, "viewdidupdate");
             });
           });
         });
       })
-      /**
-       * @returns {string} - The name of this view
-       */
-
-    }, {
-      key: "_activate",
-
       /**
        * Activate a new Model for this View. The selector will query the retreived document for a node to use.
        * @param {Model} model - The model to update the view with
        * @returns {Promise.<void>} - A promise resolving when the activation of the new Model is complete
        * @private
        */
+
+    }, {
+      key: "_activate",
       value: _async$2(function (model) {
         var _this2 = this;
 
+        _this2._model = model;
         _this2.loading = true;
         model.doc.then(function () {
           return _this2.loading = false;
@@ -738,33 +661,25 @@
             });
           }
         }, function () {
-          return _invoke(function () {
-            if (_this2.loading) {
-              return _awaitIgnored(_this2._transition.loading());
+          return _await$2(model.doc, function (doc) {
+            var node = doc.querySelector(_this2._selector);
+            if (!node) throw errorViewNotFound(_this2.name);
+            var active = Boolean(node.innerHTML.trim());
+
+            if (!active) {
+              _this2.active = false;
+              _this2.visible = false;
+              return;
             }
-          }, function () {
-            return _await$2(model.doc, function (doc) {
-              var node = doc.querySelector(_this2._selector);
-              if (!node) throw errorViewNotFound(_this2.name);
-              var active = Boolean(node.innerHTML.trim());
 
-              if (!active) {
-                _this2.active = false;
-                _this2.visible = false;
-                return;
-              }
+            if (!ViewOrder$1.has(_this2)) {
+              ViewOrder$1.push(_this2);
+            }
 
-              if (!ViewOrder$1.has(_this2)) {
-                ViewOrder$1.push(_this2);
-              }
-
-              return _await$2(_this2._transition.beforeEnter(node, doc), function () {
-                _this2.visible = true;
-                _this2.active = true;
-                return _await$2(_this2._enter(node, doc), function () {
-                  _this2._model = model;
-                });
-              });
+            return _await$2(_this2._transition.beforeEnter(node, doc), function () {
+              _this2.visible = true;
+              _this2.active = true;
+              return _awaitIgnored(_this2._enter(node, doc));
             });
           });
         });
@@ -794,9 +709,9 @@
       value: _async$2(function (node, doc) {
         var _this4 = this;
 
-        dispatch(_this4._element, 'viewwillenter');
+        dispatch(_this4._element, "viewwillenter");
         return _await$2(_this4._transition.enter(node, doc), function () {
-          dispatch(_this4._element, 'viewdidenter');
+          dispatch(_this4._element, "viewdidenter");
         });
       })
     }, {
@@ -804,9 +719,9 @@
       value: _async$2(function () {
         var _this5 = this;
 
-        dispatch(_this5._element, 'viewwillexit');
+        dispatch(_this5._element, "viewwillexit");
         return _await$2(_this5._transition.exit(), function () {
-          dispatch(_this5._element, 'viewdidexit');
+          dispatch(_this5._element, "viewdidexit");
         });
       })
     }, {
@@ -830,7 +745,7 @@
 
         this._element.setAttribute(attributes.dict.viewActive, bool);
 
-        this._activeList.toggle(this._options.name, bool);
+        attributeList.toggle(document.body, "data-views-active", this.name, bool);
       }
     }, {
       key: "visible",
@@ -840,7 +755,7 @@
 
         this._element.setAttribute(attributes.dict.viewActive, bool);
 
-        this._visibleList.toggle(this._options.name, bool);
+        attributeList.toggle(document.body, "data-views-visible", this.name, bool);
       }
       /**
        * @returns {boolean} - Whether this View is loading
@@ -859,18 +774,12 @@
       set: function set(bool) {
         if (this._isLoading === bool) return;
         this._isLoading = bool;
-
-        this._loadingList.toggle(this._options.name, bool);
+        attributeList.toggle(document.body, attributes.dict.viewsLoading, this.name, bool);
       }
       /**
-       * @returns {Model} - The Model currently associated with this view
+       * @returns {string} - The name of this view
        */
 
-    }, {
-      key: "model",
-      get: function get() {
-        return this._model;
-      }
     }, {
       key: "name",
       get: function get() {
@@ -880,6 +789,15 @@
       key: "transition",
       get: function get() {
         return this._transition;
+      }
+      /**
+       * @returns {Model} - The Model currently associated with this view
+       */
+
+    }, {
+      key: "model",
+      get: function get() {
+        return this._model;
       }
     }], [{
       key: "options",
@@ -894,6 +812,14 @@
 
     return View;
   }();
+
+  function _awaitIgnored$1(value, direct) {
+    if (!direct) {
+      return value && value.then ? value.then(_empty$1) : Promise.resolve();
+    }
+  }
+
+  function _empty$1() {}
 
   function _continue(value, then) {
     return value && value.then ? value.then(then) : then(value);
@@ -939,10 +865,15 @@
     };
   }
   var SUPPORTED = "pushState" in history;
+
+  var viewSelector = function viewSelector(name) {
+    return "\n  [".concat(attributes.dict.view, "=").concat(name, "],\n  [").concat(attributes.dict.slot, "=").concat(name, "]\n");
+  };
   /**
    * @class Controller
    * @classdesc Handles updating the views on the page with new models
    */
+
 
   var Controller =
   /*#__PURE__*/
@@ -966,6 +897,7 @@
         if (!SUPPORTED) return;
         this._options = Object.assign({}, Controller.options, options);
         this._viewsMap = new WeakMap();
+        this._views = [];
         attributes.assign(this._options.attributes);
 
         var url = this._options.sanitizeUrl(window.location.href);
@@ -991,21 +923,6 @@
        */
 
     }, {
-      key: "_gatherViews",
-
-      /**
-       * Return all the views contained in the current document
-       * @returns {View[]} - An array of View instances
-       */
-      value: function _gatherViews() {
-        var _this = this;
-
-        var selector = "[".concat(attributes.dict.view, "], [").concat(attributes.dict.slot, "]");
-        return Array.from(document.querySelectorAll(selector)).map(function (element) {
-          return _this._viewsMap.get(element);
-        });
-      }
-    }, {
       key: "isActive",
       value: function isActive(name) {
         var view = this._getViewByName(name);
@@ -1020,13 +937,13 @@
     }, {
       key: "_bindEvents",
       value: function _bindEvents() {
-        var _this2 = this;
+        var _this = this;
 
         document.addEventListener("viewdidenter", function (e) {
-          return _this2.initializeContext(e.target);
+          return _this.initializeContext(e.target);
         });
         window.addEventListener("popstate", function (e) {
-          return _this2._onPopState(e);
+          return _this._onPopState(e);
         });
       }
       /**
@@ -1039,13 +956,17 @@
     }, {
       key: "initializeContext",
       value: function initializeContext(context) {
-        var _this3 = this;
+        var _this2 = this;
 
         var selector = "[".concat(attributes.dict.view, "], [").concat(attributes.dict.slot, "]");
         Array.from(context.querySelectorAll(selector)).filter(function (element) {
-          return !_this3._viewsMap.has(element);
+          return !_this2._viewsMap.has(element);
         }).forEach(function (element) {
-          return _this3._viewsMap.set(element, _this3._createView(element, _this3._model));
+          var view = _this2._createView(element, _this2._model);
+
+          _this2._viewsMap.set(element, view);
+
+          _this2._views.push(view);
         });
         listen(context.querySelectorAll("[href][".concat(attributes.dict.viewLink, "]")), "click", this._onLinkClick);
         listen(context.querySelectorAll("[".concat(attributes.dict.deactivateView, "]")), "click", this._onDeactivateViewClick);
@@ -1070,33 +991,6 @@
         });
       }
       /**
-       * Throw an error when there are views in the doc for which we cannot determine where they should be placed in the
-       * document. This is the case when the doc which is loaded contains views which are not in the current document and
-       * do not have a parent view which is in the current document.
-       * @param doc
-       * @private
-       */
-
-    }, {
-      key: "_throwOnUnknownViews",
-      value: function _throwOnUnknownViews(doc) {
-        var message = function message(name) {
-          return "Not able to determine where [".concat(attributes.dict.view, "='").concat(name, "'] should be inserted.");
-        };
-
-        var views = this._gatherViews();
-
-        Array.from(doc.querySelectorAll("[".concat(attributes.dict.view, "]"))).map(function (viewElement) {
-          return viewElement.getAttribute(attributes.dict.view);
-        }).filter(function (name) {
-          return !views.some(function (view) {
-            return view.name === name;
-          });
-        }).forEach(function (name) {
-          throw new Error(message(name));
-        });
-      }
-      /**
        * Handles a click on an element with a [data-view-link] attribute. Loads the document found at [href].
        * This function calls the _setModel function and adds a history entry.
        * @param {Event} e - Click event
@@ -1106,13 +1000,13 @@
     }, {
       key: "_onLinkClick",
       value: _async$3(function (e) {
-        var _this4 = this;
+        var _this3 = this;
 
         e.preventDefault();
 
-        var url = _this4._options.sanitizeUrl(e.currentTarget.href);
+        var url = _this3._options.sanitizeUrl(e.currentTarget.href);
 
-        _this4.openUrl(url);
+        _this3.openUrl(url);
       })
       /**
        *
@@ -1181,8 +1075,9 @@
     }, {
       key: "_getViewByName",
       value: function _getViewByName(name) {
-        var element = document.querySelector("[".concat(attributes.dict.view, "=\"").concat(name, "\"], [").concat(attributes.dict.slot, "=\"").concat(name, "\"]"));
-        return this._viewsMap.get(element);
+        return this._views.find(function (view) {
+          return view.name === name;
+        });
       }
       /**
        * Recreate a model for a given popstate and update the page
@@ -1197,7 +1092,16 @@
 
         try {
           // We use an existing model (if it exists) so we don't have to refetch the associated request
-          var _model = Model.getById(e.state.model.id) || new Model(e.state.model, this._options.fetch);
+          var _model = Model.getById(e.state.modelId); // Recreate the model if it's not in the cache
+
+
+          if (!_model) {
+            var options = {
+              url: e.state.url,
+              id: e.state.modelId
+            };
+            _model = new Model(options, this._options.fetch);
+          }
 
           this._queueModel(_model);
         } catch (err) {
@@ -1229,34 +1133,33 @@
     }, {
       key: "_setModel",
       value: _async$3(function (model) {
-        var _this5 = this;
+        var _this4 = this;
 
-        _this5._updatingPage = true;
-        dispatch(window, "pagewillupdate");
-        _this5._model = model;
+        _this4._model = model;
+        _this4._updatingPage = true;
         return _continue(_catch(function () {
-          var views = _this5._gatherViews();
+          dispatch(window, "pagewillupdate");
 
-          var setModelPromises = views.map(function (view) {
-            return view.setModel(model);
-          });
+          _this4._views.forEach(_async$3(function (view) {
+            return _awaitIgnored$1(view.setModel(model));
+          }));
+
           return _await$3(model.doc, function (doc) {
-            _this5._throwOnUnknownViews(doc);
+            _this4._options.updateDocument(doc);
 
-            _this5._options.updateDocument(doc);
-
-            return _await$3(Promise.all(setModelPromises), function () {
-              dispatch(window, "pagedidupdate");
+            _this4._views = _this4._views.filter(function (view) {
+              return Boolean(document.querySelector(viewSelector(view.name)));
             });
+            dispatch(window, "pagedidupdate");
           });
         }, function (err) {
           console.error(err);
           window.location.href = model.url;
         }), function () {
-          _this5._updatingPage = false;
+          _this4._updatingPage = false;
 
-          if (_this5._queuedModel !== model) {
-            _this5._setModel(_this5._queuedModel);
+          if (_this4._queuedModel !== model) {
+            _this4._setModel(_this4._queuedModel);
           }
         });
       })
@@ -1274,7 +1177,7 @@
         var state = {
           title: document.title,
           url: model.url,
-          model: model.getBlueprint()
+          model: model.id
         };
         var method = replaceEntry ? "replaceState" : "pushState";
         history[method](state, document.title, model.url);
@@ -1323,13 +1226,13 @@
     };
   }
 
-  function _awaitIgnored$1(value, direct) {
+  function _awaitIgnored$2(value, direct) {
     if (!direct) {
-      return value && value.then ? value.then(_empty$1) : Promise.resolve();
+      return value && value.then ? value.then(_empty$2) : Promise.resolve();
     }
   }
 
-  function _empty$1() {}
+  function _empty$2() {}
   /**
    * Extended Transition
    */
@@ -1356,7 +1259,7 @@
 
         _get(_getPrototypeOf(AnimationTransition.prototype), "exit", _this).call(_this);
 
-        return _awaitIgnored$1(new Promise(function (resolve) {
+        return _awaitIgnored$2(new Promise(function (resolve) {
           var animationEnd = function animationEnd(e) {
             if (e.target !== _this._view) return;
 
@@ -1380,7 +1283,7 @@
 
         _get(_getPrototypeOf(AnimationTransition.prototype), "enter", _this2).call(_this2, node);
 
-        return _awaitIgnored$1(new Promise(function (resolve) {
+        return _awaitIgnored$2(new Promise(function (resolve) {
           var animationEnd = function animationEnd(e) {
             if (e.target !== _this2._view) return;
 

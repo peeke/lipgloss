@@ -4,7 +4,6 @@ import { dispatch } from "./util";
 let modelId = 0;
 const modelCache = {};
 const newId = () => [Date.now(), modelId++].join("-");
-const isNumber = n => Number(n) === n;
 
 /**
  * @class Model
@@ -20,11 +19,9 @@ class Model {
   constructor(options, fetchOptions = {}) {
     this._request = new Request(options.url, fetchOptions);
     this._doc = null;
-    this._id = isNumber(options.id) ? options.id : newId();
+    this._id = typeof options.id === 'number' ? options.id : newId();
 
     modelCache[this._id] = this;
-
-    dispatch(window, "modelload");
 
     this._response = fetch(this._request)
       .then(response => (response.ok ? response : Promise.reject()))
@@ -34,10 +31,6 @@ class Model {
         if (options.url !== response.url) return Promise.reject();
         return response;
       });
-
-    this._response.then(() =>
-      dispatch(window, "modelloaded", this.getBlueprint())
-    );
   }
 
   static getById(id) {
@@ -81,18 +74,7 @@ class Model {
 
   equals(model) {
     if (!model) return false;
-    return this === model || this.id === model.id;
-  }
-
-  /**
-   * Get an object blueprint of the Model, which can be added to the history state. You can pass it to the
-   * options parameter in the constructor to recreate the model:
-   * @example <caption>Using the model blueprint</caption>
-   * const blueprint = model.getBlueprint()
-   * const twin = new Model(blueprint, fetchOptions)
-   */
-  getBlueprint() {
-    return { id: this._id, url: this._request.url };
+    return this.id === model.id;
   }
 }
 

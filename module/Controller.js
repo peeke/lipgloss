@@ -7,6 +7,11 @@ import { listen, dispatch } from "./util";
 
 const SUPPORTED = "pushState" in history;
 
+const viewSelector = name => `
+  [${attributes.dict.view}=${name}],
+  [${attributes.dict.slot}=${name}]
+`;
+
 /**
  * @class Controller
  * @classdesc Handles updating the views on the page with new models
@@ -24,15 +29,13 @@ class Controller {
 
     this._options = Object.assign({}, Controller.options, options);
     this._viewsMap = new WeakMap();
+    this._views = [];
 
     attributes.assign(this._options.attributes);
 
     const url = this._options.sanitizeUrl(window.location.href);
-    this._model = new Model(
-      { url },
-      this._options.fetch
-    );
-    
+    this._model = new Model({ url }, this._options.fetch);
+
     this._queuedModel = this._model;
     this._updatingPage = false;
 
@@ -69,17 +72,6 @@ class Controller {
     };
   }
 
-  /**
-   * Return all the views contained in the current document
-   * @returns {View[]} - An array of View instances
-   */
-  _gatherViews() {
-    const selector = `[${attributes.dict.view}], [${attributes.dict.slot}]`;
-    return Array.from(document.querySelectorAll(selector)).map(element =>
-      this._viewsMap.get(element)
-    );
-  }
-
   isActive(name) {
     const view = this._getViewByName(name);
     return view && view.active;
@@ -104,17 +96,21 @@ class Controller {
    */
   initializeContext(context) {
     const selector = `[${attributes.dict.view}], [${attributes.dict.slot}]`;
+
     Array.from(context.querySelectorAll(selector))
       .filter(element => !this._viewsMap.has(element))
-      .forEach(element =>
-        this._viewsMap.set(element, this._createView(element, this._model))
-      );
+      .forEach(element => {
+        const view = this._createView(element, this._model);
+        this._viewsMap.set(element, view);
+        this._views.push(view);
+      });
 
     listen(
       context.querySelectorAll(`[href][${attributes.dict.viewLink}]`),
       "click",
       this._onLinkClick
     );
+
     listen(
       context.querySelectorAll(`[${attributes.dict.deactivateView}]`),
       "click",
@@ -138,28 +134,6 @@ class Controller {
   }
 
   /**
-   * Throw an error when there are views in the doc for which we cannot determine where they should be placed in the
-   * document. This is the case when the doc which is loaded contains views which are not in the current document and
-   * do not have a parent view which is in the current document.
-   * @param doc
-   * @private
-   */
-  _throwOnUnknownViews(doc) {
-    const message = name =>
-      `Not able to determine where [${
-        attributes.dict.view
-      }='${name}'] should be inserted.`;
-    const views = this._gatherViews();
-
-    Array.from(doc.querySelectorAll(`[${attributes.dict.view}]`))
-      .map(viewElement => viewElement.getAttribute(attributes.dict.view))
-      .filter(name => !views.some(view => view.name === name))
-      .forEach(name => {
-        throw new Error(message(name));
-      });
-  }
-
-  /**
    * Handles a click on an element with a [data-view-link] attribute. Loads the document found at [href].
    * This function calls the _setModel function and adds a history entry.
    * @param {Event} e - Click event
@@ -176,10 +150,7 @@ class Controller {
    * @param {String} url - The url to open.
    * @param {Object} fetchOptions - The options to pass to fetch().
    */
-  openUrl(
-    url,
-    fetchOptions = this._options.fetch
-  ) {
+  openUrl(url, fetchOptions = this._options.fetch) {
     const model = new Model({ url }, fetchOptions);
     const samePage = this._model && this._model.equals(model);
     this._queueModel(model);
@@ -224,10 +195,7 @@ class Controller {
    * @private
    */
   _getViewByName(name) {
-    const element = document.querySelector(
-      `[${attributes.dict.view}="${name}"], [${attributes.dict.slot}="${name}"]`
-    );
-    return this._viewsMap.get(element);
+    return this._views.find(view => view.name === name);
   }
 
   /**
@@ -240,9 +208,14 @@ class Controller {
 
     try {
       // We use an existing model (if it exists) so we don't have to refetch the associated request
-      const model =
-        Model.getById(e.state.model.id) ||
-        new Model(e.state.model, this._options.fetch);
+      let model = Model.getById(e.state.modelId);
+
+      // Recreate the model if it's not in the cache
+      if (!model) {
+        const options = { url: e.state.url, id: e.state.modelId };
+        model = new Model(options, this._options.fetch);
+      }
+
       this._queueModel(model);
     } catch (err) {
       console.error(err);
@@ -268,28 +241,30 @@ class Controller {
    * @private
    */
   async _setModel(model) {
+    this._model = model;
     this._updatingPage = true;
 
-    dispatch(window, "pagewillupdate");
-
-    this._model = model;
-
     try {
-      const views = this._gatherViews();
-      const setModelPromises = views.map(view => view.setModel(model));
+      dispatch(window, "pagewillupdate");
+
+      this._views.forEach(async view => {
+        await view.setModel(model);
+      });
 
       const doc = await model.doc;
-      this._throwOnUnknownViews(doc);
       this._options.updateDocument(doc);
 
-      await Promise.all(setModelPromises);
+      this._views = this._views.filter(view =>
+        Boolean(document.querySelector(viewSelector(view.name)))
+      );
+
       dispatch(window, "pagedidupdate");
     } catch (err) {
       console.error(err);
       window.location.href = model.url;
     }
 
-    this._updatingPage = false
+    this._updatingPage = false;
     if (this._queuedModel !== model) {
       this._setModel(this._queuedModel);
     }
@@ -305,7 +280,7 @@ class Controller {
     const state = {
       title: document.title,
       url: model.url,
-      model: model.getBlueprint()
+      model: model.id
     };
 
     const method = replaceEntry ? "replaceState" : "pushState";

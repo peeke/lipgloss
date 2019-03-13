@@ -42,17 +42,6 @@ class Transition {
     this._view.setAttribute(attributes.dict.transition, "out");
   }
 
-  /**
-   * @description Loading transition for the given view. This transition state will only occur
-   * if the requested document is still loading when exit() completes.
-   * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'loading'
-   */
-  async loading() {
-    this._view.removeAttribute(attributes.dict.transition);
-    reflow(this._view);
-    this._view.setAttribute(attributes.dict.transition, "loading");
-  }
-
   async beforeEnter() {
     return;
   }
