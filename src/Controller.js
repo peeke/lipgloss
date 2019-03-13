@@ -283,13 +283,12 @@ class Controller {
     try {
       const views = this._gatherViews();
       const promises = views.map(view => view.setModel(model));
-      const done = Promise.all(promises);
 
       const doc = await model.doc;
       this._throwOnUnknownViews(doc);
       this._options.updateDocument(doc);
 
-      await done;
+      await Promise.all(promises);
       dispatch(window, "pagedidupdate", model.getBlueprint());
     } catch (err) {
       console.error(err);
@@ -299,8 +298,6 @@ class Controller {
     if (this._queuedModel !== model) {
       this._updatePage(this._queuedModel);
     }
-
-    this._updatingPage = false;
   }
 
   /**

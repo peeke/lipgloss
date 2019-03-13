@@ -1,8 +1,14 @@
 {
   "presets": [
-    ["env", {
-      "modules": false
-    }]
+    [
+      "@babel/env",
+      {
+        "targets": {
+          "ie": "11"
+        },
+        "useBuiltIns": false,
+      },
+    ],
   ],
-  "plugins": ["external-helpers", "transform-async-to-promises"]
+  "plugins": ["transform-async-to-promises"]
 }
