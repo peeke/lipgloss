@@ -37,7 +37,7 @@ class Transition {
    * @description Exit transition for the given view.
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
-  async exit() {
+  async exit(docPromise) {
     this._view.removeAttribute(attributes.transition)
     reflow(this._view)
     this._view.setAttribute(attributes.transition, 'out')

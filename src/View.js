@@ -31,14 +31,9 @@ class View {
 
     this._model = this._options.model
     this._selector = `[${attributes.view}="${this._options.name}"]`
-    this._transition = new this._options.transition(this._element)
 
     if (this.active) {
       ViewOrder.push(this)
-    }
-
-    if (!(this._transition instanceof Transition)) {
-      throw new Error('Provided transition is not an instance of Transition')
     }
   }
 
@@ -120,6 +115,20 @@ class View {
     return this._model
   }
 
+  setupMilestones() {
+    let viewWillExit, viewDidExit, viewWillEnter, viewDidEnter;
+    const milestones = {
+      viewWillExit: new Promise(resolve => {viewWillExit = resolve}), 
+      viewDidExit: new Promise(resolve => {viewDidExit = resolve}), 
+      viewWillEnter: new Promise(resolve => {viewWillEnter = resolve}), 
+      viewDidEnter: new Promise(resolve => {viewDidEnter = resolve})
+    }
+    this._milestoneResolvers = {
+      viewWillExit, viewDidExit, viewWillEnter, viewDidEnter
+    }
+    return milestones
+  }
+
   /**
    * Set the model associated with this view
    * Has three flows:
@@ -128,7 +137,7 @@ class View {
    *   3. The view is not included in the Model, deactivate
    * @param {Model} model
    */
-  async setModel(model) {
+  async setModel(model, milestones) {
     if (model && model.equals(this._model)) {
       return
     }
@@ -142,9 +151,7 @@ class View {
     const node = doc.querySelector(this._selector)
     const active = node && Boolean(node.innerHTML.trim())
 
-    active ? await this._activate(model) : await this._deactivate()
-
-    this._transition.done()
+    active ? await this._activate(model, milestones) : await this._deactivate(milestones)
 
     dispatch(this._element, 'viewdidupdate')
   }
@@ -155,65 +162,61 @@ class View {
    * @returns {Promise.<void>} - A promise resolving when the activation of the new Model is complete
    * @private
    */
-  async _activate(model) {
+  async _activate(model, milestones) {
+    const transition = new this._options.transition(this._element, milestones)
     this._model = model
 
     this.loading = true
     model.doc.then(() => (this.loading = false))
 
     if (this.active) {
-      await this._transition.beforeExit()
-      await this._exit(model.doc)
+      await transition.beforeExit()
+      dispatch(this._element, 'viewwillexit')
+      this._milestoneResolvers.viewWillExit()
+      await transition.exit(model.doc)
+      dispatch(this._element, 'viewdidexit')
     }
 
     const doc = await model.doc
     const node = doc.querySelector(this._selector)
     if (!node) throw errorViewNotFound(this.name)
-    const active = Boolean(node.innerHTML.trim())
 
-    if (!active) {
-      this.active = false
-      this.visible = false
-      return
-    }
+    ViewOrder.push(this)
 
-    if (!ViewOrder.has(this)) {
-      ViewOrder.push(this)
-    }
-
-    await this._transition.beforeEnter(node, doc)
+    await transition.beforeEnter(node, doc)
+    
     this.visible = true
     this.active = true
-    await this._enter(node, doc)
+
+    dispatch(this._element, 'viewwillenter')
+    await transition.enter(node, doc)
+    dispatch(this._element, 'viewdidenter')
+
+    transition.done()
   }
 
   /**
    * Deactivate the Model for this View.
    * @private
    */
-  async _deactivate() {
+  async _deactivate(milestones) {
     if (!this.active) return
+
+    const transition = new this._options.transition(this._element, milestones)
 
     ViewOrder.delete(this)
 
-    await this._transition.beforeExit()
+    await transition.beforeExit()
     this.active = false
-    await this._exit()
-    this.visible = false
 
-    this._model = null
-  }
-
-  async _enter(node, doc) {
-    dispatch(this._element, 'viewwillenter')
-    await this._transition.enter(node, doc)
-    dispatch(this._element, 'viewdidenter')
-  }
-
-  async _exit(doc) {
     dispatch(this._element, 'viewwillexit')
-    await this._transition.exit(doc)
+    await transition.exit()
     dispatch(this._element, 'viewdidexit')
+    
+    this.visible = false
+    
+    transition.done()
+    this._model = null
   }
 }
 

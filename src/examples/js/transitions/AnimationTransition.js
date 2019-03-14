@@ -14,6 +14,7 @@ export class AnimationTransition extends Transition {
       const animationEnd = e => {
         if (e.target !== this._view) return
         this._view.removeEventListener('animationend', animationEnd)
+        this._view.removeEventListener('animationend', animationEnd)
         resolve()
       }
       this._view.addEventListener('animationend', animationEnd)

@@ -247,8 +247,13 @@ class Controller {
     try {
       dispatch(window, 'pagewillupdate')
 
+      const milestones = this._views.reduce((milestones, view) => ({
+          ...milestones,
+          [view.name]: view.setupMilestones()
+      }), {})
+
       this._views.forEach(async view => {
-        await view.setModel(model)
+        await view.setModel(model, milestones)
       })
 
       const doc = await model.doc

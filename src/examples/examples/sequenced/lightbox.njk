@@ -1,12 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Lipgloss - Lightbox</title>
-    <link rel="stylesheet" href="/statics/css/lightbox.css">
-</head>
-<body>
+{% extends 'layout/sequenced.njk' %}
+{% block body %}
 
     <main data-view="lightbox">
         <div class="lightbox-box">
@@ -20,6 +13,4 @@
         <button class="lightbox-close" data-deactivate-view="lightbox">Close</button>
     </main>
 
-<script src="/statics/js/lightbox.js"></script>
-</body>
-</html>
+{% endblock %}

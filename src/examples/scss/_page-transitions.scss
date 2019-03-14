@@ -10,6 +10,7 @@
 	}
 }
 
+[data-view='sequenced'],
 [data-view='main'] {
 	&[data-transition='in'] {
 		animation: container .5s $ease-out-quart;
@@ -25,3 +26,4 @@
 		animation-direction: reverse;
 	}
 }
+

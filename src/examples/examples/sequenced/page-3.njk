@@ -1,12 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Lipgloss - Lightbox</title>
-    <link rel="stylesheet" href="/statics/css/lightbox.css">
-</head>
-<body>
+{% extends 'layout/sequenced.njk' %}
+{% block body %}
 
     <header>Persisting header from page 3</header>
 
@@ -29,6 +22,4 @@
 
     <div data-view="lightbox" class="lightbox"></div>
 
-<script src="/statics/js/lightbox.js"></script>
-</body>
-</html>
+{% endblock %}

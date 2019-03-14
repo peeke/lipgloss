@@ -1,3 +1,5 @@
-node_modules/
-examples/
-docs/
+/node_modules/
+/examples/
+/docs/
+/dist/
+/module/
