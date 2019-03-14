@@ -1063,7 +1063,7 @@
         var state = {
           title: document.title,
           url: model.url,
-          model: model.id
+          modelId: model.id
         };
         var method = replaceEntry ? "replaceState" : "pushState";
         history[method](state, document.title, model.url);

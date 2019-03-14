@@ -205,7 +205,7 @@ class Controller {
    */
   _onPopState(e) {
     if (!e.state) return; // popstate fires on page load as well
-
+    
     try {
       // We use an existing model (if it exists) so we don't have to refetch the associated request
       let model = Model.getById(e.state.modelId);
@@ -280,7 +280,7 @@ class Controller {
     const state = {
       title: document.title,
       url: model.url,
-      model: model.id
+      modelId: model.id
     };
 
     const method = replaceEntry ? "replaceState" : "pushState";

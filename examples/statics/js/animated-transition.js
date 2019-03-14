@@ -617,7 +617,7 @@
         return _invoke(function () {
           if (_this2.active) {
             return _await$2(_this2._transition.beforeExit(), function () {
-              return _awaitIgnored(_this2._exit());
+              return _awaitIgnored(_this2._exit(model.doc));
             });
           }
         }, function () {
@@ -676,11 +676,11 @@
       })
     }, {
       key: "_exit",
-      value: _async$2(function () {
+      value: _async$2(function (doc) {
         var _this5 = this;
 
         dispatch(_this5._element, "viewwillexit");
-        return _await$2(_this5._transition.exit(), function () {
+        return _await$2(_this5._transition.exit(doc), function () {
           dispatch(_this5._element, "viewdidexit");
         });
       })
@@ -1137,7 +1137,7 @@
         var state = {
           title: document.title,
           url: model.url,
-          model: model.id
+          modelId: model.id
         };
         var method = replaceEntry ? "replaceState" : "pushState";
         history[method](state, document.title, model.url);

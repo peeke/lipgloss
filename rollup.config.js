@@ -26,7 +26,11 @@ export default [
     plugins: [
       resolve(),
       babel(),
-      uglify()
+      uglify({
+        mangle: {
+          properties: true,
+        }
+      })
     ]
   }
 ]
