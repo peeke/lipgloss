@@ -261,10 +261,11 @@
     /**
      * @param {Element} view - The view element
      */
-    function Transition(view) {
+    function Transition(view, milestones) {
       _classCallCheck(this, Transition);
 
       this._view = view;
+      this._milestones = milestones;
     }
 
     _createClass(Transition, [{
@@ -286,7 +287,7 @@
 
         reflow(_this._view);
 
-        _this._view.setAttribute(attributes.transition, "out");
+        _this._view.setAttribute(attributes.transition, 'out');
       })
     }, {
       key: "beforeEnter",
@@ -310,7 +311,7 @@
 
         reflow(_this2._view);
 
-        _this2._view.setAttribute(attributes.transition, "in");
+        _this2._view.setAttribute(attributes.transition, 'in');
       })
       /**
        * Updates the view element with new HTML and dispatches the 'viewhtmldidupdate' lifecycle event
@@ -320,9 +321,9 @@
     }, {
       key: "updateHtml",
       value: function updateHtml(newNode) {
-        dispatch(this._view, "viewhtmlwillupdate");
+        dispatch(this._view, 'viewhtmlwillupdate');
         this._view.innerHTML = newNode.innerHTML;
-        dispatch(this._view, "viewhtmldidupdate");
+        dispatch(this._view, 'viewhtmldidupdate');
       }
       /**
        * Cleans up after transitions have completed
@@ -374,7 +375,7 @@
   var modelCache = {};
 
   var newId = function newId() {
-    return [Date.now(), modelId++].join("-");
+    return [Date.now(), modelId++].join('-');
   };
   /**
    * @class Model
@@ -404,7 +405,7 @@
         return response.ok ? response : Promise.reject();
       }).then(function (response) {
         // { redirect: 'error' } fallback for IE and some older browsers
-        if (fetchOptions.redirect !== "error") return response;
+        if (fetchOptions.redirect !== 'error') return response;
         if (options.url !== response.url) return Promise.reject();
         return response;
       });
@@ -458,7 +459,7 @@
           this._doc = this._response.then(function (response) {
             return response.text();
           }).then(function (html) {
-            return new DOMParser().parseFromString(html, "text/html");
+            return new DOMParser().parseFromString(html, 'text/html');
           });
         }
 
@@ -555,7 +556,7 @@
       }
 
       if (!(this._transition instanceof Transition)) {
-        throw new Error("Provided transition is not an instance of Transition");
+        throw new Error('Provided transition is not an instance of Transition');
       }
     }
     /**
@@ -584,7 +585,7 @@
 
         return _await$2(model.includesView(_this._options.name), function (includedInModel) {
           if (!includedInModel) return;
-          dispatch(_this._element, "viewwillupdate");
+          dispatch(_this._element, 'viewwillupdate');
           return _await$2(model.doc, function (doc) {
             var node = doc.querySelector(_this._selector);
             var active = node && Boolean(node.innerHTML.trim());
@@ -592,7 +593,7 @@
 
               _this._transition.done();
 
-              dispatch(_this._element, "viewdidupdate");
+              dispatch(_this._element, 'viewdidupdate');
             });
           });
         });
@@ -669,9 +670,9 @@
       value: _async$2(function (node, doc) {
         var _this4 = this;
 
-        dispatch(_this4._element, "viewwillenter");
+        dispatch(_this4._element, 'viewwillenter');
         return _await$2(_this4._transition.enter(node, doc), function () {
-          dispatch(_this4._element, "viewdidenter");
+          dispatch(_this4._element, 'viewdidenter');
         });
       })
     }, {
@@ -679,9 +680,9 @@
       value: _async$2(function (doc) {
         var _this5 = this;
 
-        dispatch(_this5._element, "viewwillexit");
+        dispatch(_this5._element, 'viewwillexit');
         return _await$2(_this5._transition.exit(doc), function () {
-          dispatch(_this5._element, "viewdidexit");
+          dispatch(_this5._element, 'viewdidexit');
         });
       })
     }, {
@@ -705,7 +706,7 @@
 
         this._element.setAttribute(attributes.viewActive, bool);
 
-        attributeList.toggle(document.body, "data-views-active", this.name, bool);
+        attributeList.toggle(document.body, 'data-views-active', this.name, bool);
       }
     }, {
       key: "visible",
@@ -715,7 +716,7 @@
 
         this._element.setAttribute(attributes.viewActive, bool);
 
-        attributeList.toggle(document.body, "data-views-visible", this.name, bool);
+        attributeList.toggle(document.body, 'data-views-visible', this.name, bool);
       }
       /**
        * @returns {boolean} - Whether this View is loading
@@ -824,7 +825,7 @@
       }
     };
   }
-  var SUPPORTED = "pushState" in history;
+  var SUPPORTED = 'pushState' in history;
 
   var viewSelector = function viewSelector(name) {
     return "\n  [".concat(attributes.view, "=").concat(name, "],\n  [").concat(attributes.slot, "=").concat(name, "]\n");
@@ -875,7 +876,7 @@
         this._bindEvents();
 
         this.initializeContext(document);
-        dispatch(window, "lipglossready");
+        dispatch(window, 'lipglossready');
       }
       /**
        * Default init options
@@ -899,10 +900,10 @@
       value: function _bindEvents() {
         var _this = this;
 
-        document.addEventListener("viewdidenter", function (e) {
+        document.addEventListener('viewdidenter', function (e) {
           return _this.initializeContext(e.target);
         });
-        window.addEventListener("popstate", function (e) {
+        window.addEventListener('popstate', function (e) {
           return _this._onPopState(e);
         });
       }
@@ -928,8 +929,8 @@
 
           _this2._views.push(view);
         });
-        listen(context.querySelectorAll("[href][".concat(attributes.viewLink, "]")), "click", this._onLinkClick);
-        listen(context.querySelectorAll("[".concat(attributes.deactivateView, "]")), "click", this._onDeactivateViewClick);
+        listen(context.querySelectorAll("[href][".concat(attributes.viewLink, "]")), 'click', this._onLinkClick);
+        listen(context.querySelectorAll("[".concat(attributes.deactivateView, "]")), 'click', this._onDeactivateViewClick);
       }
       /**
        * Creates a View component based on a given element and an initial model
@@ -1098,7 +1099,7 @@
         _this4._model = model;
         _this4._updatingPage = true;
         return _continue(_catch(function () {
-          dispatch(window, "pagewillupdate");
+          dispatch(window, 'pagewillupdate');
 
           _this4._views.forEach(_async$3(function (view) {
             return _awaitIgnored$1(view.setModel(model));
@@ -1110,7 +1111,7 @@
             _this4._views = _this4._views.filter(function (view) {
               return Boolean(document.querySelector(viewSelector(view.name)));
             });
-            dispatch(window, "pagedidupdate");
+            dispatch(window, 'pagedidupdate');
           });
         }, function (err) {
           console.error(err);
@@ -1139,9 +1140,9 @@
           url: model.url,
           modelId: model.id
         };
-        var method = replaceEntry ? "replaceState" : "pushState";
+        var method = replaceEntry ? 'replaceState' : 'pushState';
         history[method](state, document.title, model.url);
-        dispatch(window, "statechange", state);
+        dispatch(window, 'statechange', state);
       }
     }], [{
       key: "options",
@@ -1156,11 +1157,11 @@
           },
           attributes: {},
           fetch: {
-            credentials: "same-origin",
-            cache: "default",
-            redirect: "error",
+            credentials: 'same-origin',
+            cache: 'default',
+            redirect: 'error',
             headers: {
-              "X-Requested-With": "XmlHttpRequest"
+              'X-Requested-With': 'XmlHttpRequest'
             }
           }
         };

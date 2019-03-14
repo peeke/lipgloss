@@ -1,14 +1,14 @@
-import ViewOrder from "./ViewOrder";
-import Transition from "./Transition";
-import Model from "./Model";
-import attributes from "./attributes";
-import { dispatch, attributeList } from "./util";
+import ViewOrder from './ViewOrder'
+import Transition from './Transition'
+import Model from './Model'
+import attributes from './attributes'
+import { dispatch, attributeList } from './util'
 
 const errorViewNotFound = name => {
   return new Error(
     `View '${name}' activated, but not found in the loaded document`
-  );
-};
+  )
+}
 
 /**
  * @class View
@@ -24,21 +24,21 @@ class View {
    * @param {Model|null} options.model = null - The initial model of the view. You should set this.
    */
   constructor(element, options = {}) {
-    this._element = element;
-    this._options = Object.assign(View.options, options);
+    this._element = element
+    this._options = Object.assign(View.options, options)
 
-    this.active = this.visible = !!this._element.innerHTML.trim();
+    this.active = this.visible = !!this._element.innerHTML.trim()
 
-    this._model = this._options.model;
-    this._selector = `[${attributes.view}="${this._options.name}"]`;
-    this._transition = new this._options.transition(this._element);
+    this._model = this._options.model
+    this._selector = `[${attributes.view}="${this._options.name}"]`
+    this._transition = new this._options.transition(this._element)
 
     if (this.active) {
-      ViewOrder.push(this);
+      ViewOrder.push(this)
     }
 
     if (!(this._transition instanceof Transition)) {
-      throw new Error("Provided transition is not an instance of Transition");
+      throw new Error('Provided transition is not an instance of Transition')
     }
   }
 
@@ -51,7 +51,7 @@ class View {
       name: null,
       transition: Transition,
       model: null
-    };
+    }
   }
 
   /**
@@ -59,7 +59,7 @@ class View {
    * @returns {boolean} - Active
    */
   get active() {
-    return this._active;
+    return this._active
   }
 
   /**
@@ -67,24 +67,24 @@ class View {
    * @param {boolean} bool - Active
    */
   set active(bool) {
-    if (this._active === bool) return;
-    this._active = bool;
-    this._element.setAttribute(attributes.viewActive, bool);
-    attributeList.toggle(document.body, "data-views-active", this.name, bool);
+    if (this._active === bool) return
+    this._active = bool
+    this._element.setAttribute(attributes.viewActive, bool)
+    attributeList.toggle(document.body, 'data-views-active', this.name, bool)
   }
 
   set visible(bool) {
-    if (this._visible === bool) return;
-    this._visible = bool;
-    this._element.setAttribute(attributes.viewActive, bool);
-    attributeList.toggle(document.body, "data-views-visible", this.name, bool);
+    if (this._visible === bool) return
+    this._visible = bool
+    this._element.setAttribute(attributes.viewActive, bool)
+    attributeList.toggle(document.body, 'data-views-visible', this.name, bool)
   }
 
   /**
    * @returns {boolean} - Whether this View is loading
    */
   get loading() {
-    return this._isLoading;
+    return this._isLoading
   }
 
   /**
@@ -92,32 +92,32 @@ class View {
    * @param {boolean} bool
    */
   set loading(bool) {
-    if (this._isLoading === bool) return;
-    this._isLoading = bool;
+    if (this._isLoading === bool) return
+    this._isLoading = bool
     attributeList.toggle(
       document.body,
       attributes.viewsLoading,
       this.name,
       bool
-    );
+    )
   }
 
   /**
    * @returns {string} - The name of this view
    */
   get name() {
-    return this._options.name;
+    return this._options.name
   }
 
   get transition() {
-    return this._transition;
+    return this._transition
   }
 
   /**
    * @returns {Model} - The Model currently associated with this view
    */
   get model() {
-    return this._model;
+    return this._model
   }
 
   /**
@@ -130,23 +130,23 @@ class View {
    */
   async setModel(model) {
     if (model && model.equals(this._model)) {
-      return;
+      return
     }
 
-    const includedInModel = await model.includesView(this._options.name);
-    if (!includedInModel) return;
+    const includedInModel = await model.includesView(this._options.name)
+    if (!includedInModel) return
 
-    dispatch(this._element, "viewwillupdate");
+    dispatch(this._element, 'viewwillupdate')
 
-    const doc = await model.doc;
-    const node = doc.querySelector(this._selector);
-    const active = node && Boolean(node.innerHTML.trim());
+    const doc = await model.doc
+    const node = doc.querySelector(this._selector)
+    const active = node && Boolean(node.innerHTML.trim())
 
-    active ? await this._activate(model) : await this._deactivate();
+    active ? await this._activate(model) : await this._deactivate()
 
-    this._transition.done();
+    this._transition.done()
 
-    dispatch(this._element, "viewdidupdate");
+    dispatch(this._element, 'viewdidupdate')
   }
 
   /**
@@ -156,35 +156,35 @@ class View {
    * @private
    */
   async _activate(model) {
-    this._model = model;
+    this._model = model
 
-    this.loading = true;
-    model.doc.then(() => (this.loading = false));
+    this.loading = true
+    model.doc.then(() => (this.loading = false))
 
     if (this.active) {
-      await this._transition.beforeExit();
-      await this._exit(model.doc);
+      await this._transition.beforeExit()
+      await this._exit(model.doc)
     }
 
-    const doc = await model.doc;
-    const node = doc.querySelector(this._selector);
-    if (!node) throw errorViewNotFound(this.name);
-    const active = Boolean(node.innerHTML.trim());
+    const doc = await model.doc
+    const node = doc.querySelector(this._selector)
+    if (!node) throw errorViewNotFound(this.name)
+    const active = Boolean(node.innerHTML.trim())
 
     if (!active) {
-      this.active = false;
-      this.visible = false;
-      return;
+      this.active = false
+      this.visible = false
+      return
     }
 
     if (!ViewOrder.has(this)) {
-      ViewOrder.push(this);
+      ViewOrder.push(this)
     }
 
-    await this._transition.beforeEnter(node, doc);
-    this.visible = true;
-    this.active = true;
-    await this._enter(node, doc);
+    await this._transition.beforeEnter(node, doc)
+    this.visible = true
+    this.active = true
+    await this._enter(node, doc)
   }
 
   /**
@@ -192,29 +192,29 @@ class View {
    * @private
    */
   async _deactivate() {
-    if (!this.active) return;
+    if (!this.active) return
 
-    ViewOrder.delete(this);
+    ViewOrder.delete(this)
 
-    await this._transition.beforeExit();
-    this.active = false;
-    await this._exit();
-    this.visible = false;
+    await this._transition.beforeExit()
+    this.active = false
+    await this._exit()
+    this.visible = false
 
-    this._model = null;
+    this._model = null
   }
 
   async _enter(node, doc) {
-    dispatch(this._element, "viewwillenter");
-    await this._transition.enter(node, doc);
-    dispatch(this._element, "viewdidenter");
+    dispatch(this._element, 'viewwillenter')
+    await this._transition.enter(node, doc)
+    dispatch(this._element, 'viewdidenter')
   }
 
   async _exit(doc) {
-    dispatch(this._element, "viewwillexit");
-    await this._transition.exit(doc);
-    dispatch(this._element, "viewdidexit");
+    dispatch(this._element, 'viewwillexit')
+    await this._transition.exit(doc)
+    dispatch(this._element, 'viewdidexit')
   }
 }
 
-export default View;
+export default View

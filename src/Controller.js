@@ -1,16 +1,16 @@
-import View from "./View";
-import ViewOrder from "./ViewOrder";
-import Model from "./Model";
-import Transition from "./Transition";
-import attributes from "./attributes";
-import { listen, dispatch } from "./util";
+import View from './View'
+import ViewOrder from './ViewOrder'
+import Model from './Model'
+import Transition from './Transition'
+import attributes from './attributes'
+import { listen, dispatch } from './util'
 
-const SUPPORTED = "pushState" in history;
+const SUPPORTED = 'pushState' in history
 
 const viewSelector = name => `
   [${attributes.view}=${name}],
   [${attributes.slot}=${name}]
-`;
+`
 
 /**
  * @class Controller
@@ -25,28 +25,28 @@ class Controller {
    * @param {object} options.fetch - The options to pass into a fetch request
    */
   init(options = {}) {
-    if (!SUPPORTED) return;
+    if (!SUPPORTED) return
 
-    this._options = Object.assign({}, Controller.options, options);
-    this._viewsMap = new WeakMap();
-    this._views = [];
+    this._options = Object.assign({}, Controller.options, options)
+    this._viewsMap = new WeakMap()
+    this._views = []
 
-    Object.assign(attributes, this._options.attributes);
+    Object.assign(attributes, this._options.attributes)
 
-    const url = this._options.sanitizeUrl(window.location.href);
-    this._model = new Model({ url }, this._options.fetch);
+    const url = this._options.sanitizeUrl(window.location.href)
+    this._model = new Model({ url }, this._options.fetch)
 
-    this._queuedModel = this._model;
-    this._updatingPage = false;
+    this._queuedModel = this._model
+    this._updatingPage = false
 
-    this._onLinkClick = this._onLinkClick.bind(this);
-    this._onDeactivateViewClick = this._onDeactivateViewClick.bind(this);
+    this._onLinkClick = this._onLinkClick.bind(this)
+    this._onDeactivateViewClick = this._onDeactivateViewClick.bind(this)
 
-    this._addHistoryEntry(this._model, true);
-    this._bindEvents();
-    this.initializeContext(document);
+    this._addHistoryEntry(this._model, true)
+    this._bindEvents()
+    this.initializeContext(document)
 
-    dispatch(window, "lipglossready");
+    dispatch(window, 'lipglossready')
   }
 
   /**
@@ -58,23 +58,23 @@ class Controller {
       transitions: {},
       sanitizeUrl: url => url,
       updateDocument: doc => {
-        document.title = doc.title;
+        document.title = doc.title
       },
       attributes: {},
       fetch: {
-        credentials: "same-origin",
-        cache: "default",
-        redirect: "error",
+        credentials: 'same-origin',
+        cache: 'default',
+        redirect: 'error',
         headers: {
-          "X-Requested-With": "XmlHttpRequest"
+          'X-Requested-With': 'XmlHttpRequest'
         }
       }
-    };
+    }
   }
 
   isActive(name) {
-    const view = this._getViewByName(name);
-    return view && view.active;
+    const view = this._getViewByName(name)
+    return view && view.active
   }
 
   /**
@@ -82,10 +82,10 @@ class Controller {
    * @private
    */
   _bindEvents() {
-    document.addEventListener("viewdidenter", e =>
+    document.addEventListener('viewdidenter', e =>
       this.initializeContext(e.target)
-    );
-    window.addEventListener("popstate", e => this._onPopState(e));
+    )
+    window.addEventListener('popstate', e => this._onPopState(e))
   }
 
   /**
@@ -95,27 +95,27 @@ class Controller {
    * @param {Element} context - The context to intialize
    */
   initializeContext(context) {
-    const selector = `[${attributes.view}], [${attributes.slot}]`;
+    const selector = `[${attributes.view}], [${attributes.slot}]`
 
     Array.from(context.querySelectorAll(selector))
       .filter(element => !this._viewsMap.has(element))
       .forEach(element => {
-        const view = this._createView(element, this._model);
-        this._viewsMap.set(element, view);
-        this._views.push(view);
-      });
+        const view = this._createView(element, this._model)
+        this._viewsMap.set(element, view)
+        this._views.push(view)
+      })
 
     listen(
       context.querySelectorAll(`[href][${attributes.viewLink}]`),
-      "click",
+      'click',
       this._onLinkClick
-    );
+    )
 
     listen(
       context.querySelectorAll(`[${attributes.deactivateView}]`),
-      "click",
+      'click',
       this._onDeactivateViewClick
-    );
+    )
   }
 
   /**
@@ -128,9 +128,9 @@ class Controller {
   _createView(element, model) {
     const name =
       element.getAttribute(attributes.view) ||
-      element.getAttribute(attributes.slot);
-    const transition = this._options.transitions[name] || Transition;
-    return new View(element, { name, transition, model });
+      element.getAttribute(attributes.slot)
+    const transition = this._options.transitions[name] || Transition
+    return new View(element, { name, transition, model })
   }
 
   /**
@@ -140,9 +140,9 @@ class Controller {
    * @private
    */
   async _onLinkClick(e) {
-    e.preventDefault();
-    const url = this._options.sanitizeUrl(e.currentTarget.href);
-    this.openUrl(url);
+    e.preventDefault()
+    const url = this._options.sanitizeUrl(e.currentTarget.href)
+    this.openUrl(url)
   }
 
   /**
@@ -151,10 +151,10 @@ class Controller {
    * @param {Object} fetchOptions - The options to pass to fetch().
    */
   openUrl(url, fetchOptions = this._options.fetch) {
-    const model = new Model({ url }, fetchOptions);
-    const samePage = this._model && this._model.equals(model);
-    this._queueModel(model);
-    this._addHistoryEntry(model, samePage);
+    const model = new Model({ url }, fetchOptions)
+    const samePage = this._model && this._model.equals(model)
+    this._queueModel(model)
+    this._addHistoryEntry(model, samePage)
   }
 
   /**
@@ -165,9 +165,9 @@ class Controller {
    * @private
    */
   _onDeactivateViewClick(e) {
-    e.preventDefault();
-    const name = e.currentTarget.getAttribute(attributes.deactivateView);
-    this.deactivateView(name);
+    e.preventDefault()
+    const name = e.currentTarget.getAttribute(attributes.deactivateView)
+    this.deactivateView(name)
   }
 
   /**
@@ -175,17 +175,17 @@ class Controller {
    * @param {string} name - Name of the view to activate
    */
   deactivateView(name) {
-    const view = this._getViewByName(name);
-    const newView = ViewOrder.order.find(v => !v.model.equals(view.model));
+    const view = this._getViewByName(name)
+    const newView = ViewOrder.order.find(v => !v.model.equals(view.model))
 
     if (!newView) {
       throw new Error(
         `Unable to deactivate view ${name}, because there's no view to fall back to.`
-      );
+      )
     }
 
-    this._queueModel(newView.model);
-    this._addHistoryEntry(newView.model);
+    this._queueModel(newView.model)
+    this._addHistoryEntry(newView.model)
   }
 
   /**
@@ -195,7 +195,7 @@ class Controller {
    * @private
    */
   _getViewByName(name) {
-    return this._views.find(view => view.name === name);
+    return this._views.find(view => view.name === name)
   }
 
   /**
@@ -204,22 +204,22 @@ class Controller {
    * @private
    */
   _onPopState(e) {
-    if (!e.state) return; // popstate fires on page load as well
-    
+    if (!e.state) return // popstate fires on page load as well
+
     try {
       // We use an existing model (if it exists) so we don't have to refetch the associated request
-      let model = Model.getById(e.state.modelId);
+      let model = Model.getById(e.state.modelId)
 
       // Recreate the model if it's not in the cache
       if (!model) {
-        const options = { url: e.state.url, id: e.state.modelId };
-        model = new Model(options, this._options.fetch);
+        const options = { url: e.state.url, id: e.state.modelId }
+        model = new Model(options, this._options.fetch)
       }
 
-      this._queueModel(model);
+      this._queueModel(model)
     } catch (err) {
-      console.error(err);
-      window.location.href = model.url;
+      console.error(err)
+      window.location.href = model.url
     }
   }
 
@@ -229,9 +229,9 @@ class Controller {
    * @private
    */
   _queueModel(model) {
-    this._queuedModel = model;
-    if (this._updatingPage) return;
-    this._setModel(model);
+    this._queuedModel = model
+    if (this._updatingPage) return
+    this._setModel(model)
   }
 
   /**
@@ -241,32 +241,32 @@ class Controller {
    * @private
    */
   async _setModel(model) {
-    this._model = model;
-    this._updatingPage = true;
+    this._model = model
+    this._updatingPage = true
 
     try {
-      dispatch(window, "pagewillupdate");
+      dispatch(window, 'pagewillupdate')
 
       this._views.forEach(async view => {
-        await view.setModel(model);
-      });
+        await view.setModel(model)
+      })
 
-      const doc = await model.doc;
-      this._options.updateDocument(doc);
+      const doc = await model.doc
+      this._options.updateDocument(doc)
 
       this._views = this._views.filter(view =>
         Boolean(document.querySelector(viewSelector(view.name)))
-      );
+      )
 
-      dispatch(window, "pagedidupdate");
+      dispatch(window, 'pagedidupdate')
     } catch (err) {
-      console.error(err);
-      window.location.href = model.url;
+      console.error(err)
+      window.location.href = model.url
     }
 
-    this._updatingPage = false;
+    this._updatingPage = false
     if (this._queuedModel !== model) {
-      this._setModel(this._queuedModel);
+      this._setModel(this._queuedModel)
     }
   }
 
@@ -281,13 +281,13 @@ class Controller {
       title: document.title,
       url: model.url,
       modelId: model.id
-    };
+    }
 
-    const method = replaceEntry ? "replaceState" : "pushState";
-    history[method](state, document.title, model.url);
+    const method = replaceEntry ? 'replaceState' : 'pushState'
+    history[method](state, document.title, model.url)
 
-    dispatch(window, "statechange", state);
+    dispatch(window, 'statechange', state)
   }
 }
 
-export default Controller;
+export default Controller

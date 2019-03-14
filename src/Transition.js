@@ -1,5 +1,5 @@
-import attributes from "./attributes";
-import { dispatch, reflow } from "./util";
+import attributes from './attributes'
+import { dispatch, reflow } from './util'
 
 /**
  * @class Transition
@@ -20,16 +20,17 @@ class Transition {
   /**
    * @param {Element} view - The view element
    */
-  constructor(view) {
-    this._view = view;
+  constructor(view, milestones) {
+    this._view = view
+    this._milestones = milestones
   }
 
   get view() {
-    return this._view;
+    return this._view
   }
 
   async beforeExit() {
-    return;
+    return
   }
 
   /**
@@ -37,13 +38,13 @@ class Transition {
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
   async exit() {
-    this._view.removeAttribute(attributes.transition);
-    reflow(this._view);
-    this._view.setAttribute(attributes.transition, "out");
+    this._view.removeAttribute(attributes.transition)
+    reflow(this._view)
+    this._view.setAttribute(attributes.transition, 'out')
   }
 
   async beforeEnter() {
-    return;
+    return
   }
 
   /**
@@ -52,10 +53,10 @@ class Transition {
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
   async enter(newNode, newDoc) {
-    this.updateHtml(newNode);
-    this._view.removeAttribute(attributes.transition);
-    reflow(this._view);
-    this._view.setAttribute(attributes.transition, "in");
+    this.updateHtml(newNode)
+    this._view.removeAttribute(attributes.transition)
+    reflow(this._view)
+    this._view.setAttribute(attributes.transition, 'in')
   }
 
   /**
@@ -63,18 +64,18 @@ class Transition {
    * @param {String} newNode - The new views node
    */
   updateHtml(newNode) {
-    dispatch(this._view, "viewhtmlwillupdate")
-    this._view.innerHTML = newNode.innerHTML;
-    dispatch(this._view, "viewhtmldidupdate")
+    dispatch(this._view, 'viewhtmlwillupdate')
+    this._view.innerHTML = newNode.innerHTML
+    dispatch(this._view, 'viewhtmldidupdate')
   }
 
   /**
    * Cleans up after transitions have completed
    */
   done() {
-    this._view.removeAttribute(attributes.transition);
-    reflow(this._view);
+    this._view.removeAttribute(attributes.transition)
+    reflow(this._view)
   }
 }
 
-export default Transition;
+export default Transition

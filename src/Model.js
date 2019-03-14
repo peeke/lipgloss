@@ -1,9 +1,9 @@
-import attributes from "./attributes";
-import { dispatch } from "./util";
+import attributes from './attributes'
+import { dispatch } from './util'
 
-let modelId = 0;
-const modelCache = {};
-const newId = () => [Date.now(), modelId++].join("-");
+let modelId = 0
+const modelCache = {}
+const newId = () => [Date.now(), modelId++].join('-')
 
 /**
  * @class Model
@@ -17,28 +17,28 @@ class Model {
    * @param {object} fetchOptions = The options used to fetch the url
    */
   constructor(options, fetchOptions = {}) {
-    this._request = new Request(options.url, fetchOptions);
-    this._doc = null;
-    this._id = typeof options.id === 'number' ? options.id : newId();
+    this._request = new Request(options.url, fetchOptions)
+    this._doc = null
+    this._id = typeof options.id === 'number' ? options.id : newId()
 
-    modelCache[this._id] = this;
+    modelCache[this._id] = this
 
     this._response = fetch(this._request)
       .then(response => (response.ok ? response : Promise.reject()))
       .then(response => {
         // { redirect: 'error' } fallback for IE and some older browsers
-        if (fetchOptions.redirect !== "error") return response;
-        if (options.url !== response.url) return Promise.reject();
-        return response;
-      });
+        if (fetchOptions.redirect !== 'error') return response
+        if (options.url !== response.url) return Promise.reject()
+        return response
+      })
   }
 
   static getById(id) {
-    return modelCache[id];
+    return modelCache[id]
   }
 
   get id() {
-    return this._id;
+    return this._id
   }
 
   /**
@@ -46,7 +46,7 @@ class Model {
    * @returns {string}
    */
   get url() {
-    return this._request.url;
+    return this._request.url
   }
 
   /**
@@ -57,9 +57,9 @@ class Model {
     if (!this._doc) {
       this._doc = this._response
         .then(response => response.text())
-        .then(html => new DOMParser().parseFromString(html, "text/html"));
+        .then(html => new DOMParser().parseFromString(html, 'text/html'))
     }
-    return this._doc;
+    return this._doc
   }
 
   /**
@@ -68,14 +68,14 @@ class Model {
    * @returns {boolean}
    */
   async includesView(name) {
-    const doc = await this.doc;
-    return Boolean(doc.querySelector(`[${attributes.view}="${name}"]`));
+    const doc = await this.doc
+    return Boolean(doc.querySelector(`[${attributes.view}="${name}"]`))
   }
 
   equals(model) {
-    if (!model) return false;
-    return this.id === model.id;
+    if (!model) return false
+    return this.id === model.id
   }
 }
 
-export default Model;
+export default Model
