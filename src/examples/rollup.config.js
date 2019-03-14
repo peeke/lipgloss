@@ -21,5 +21,6 @@ const configFor = file => ({
 export default [
   configFor('basic.js'),
   configFor('animated-transition.js'),
-  configFor('lightbox.js')
+  configFor('lightbox.js'),
+  configFor('sequenced.js')
 ]

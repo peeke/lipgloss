@@ -7,10 +7,14 @@ $ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
 	box-sizing: inherit;
 }
 
+html {
+	height: 100%;
+}
+
 body {
-	margin: 5vh auto;
 	width: 90vw;
 	max-width: 1024px;
+	margin: 5vh auto;
 	box-sizing: border-box;
 }
 

@@ -18,15 +18,11 @@ import { dispatch, reflow } from './util'
  */
 class Transition {
   /**
-   * @param {Element} view - The view element
+   * @param {Element} element - The view element
    */
-  constructor(view, milestones) {
-    this._view = view
-    this._milestones = milestones
-  }
-
-  get view() {
-    return this._view
+  constructor(element, milestones) {
+    this.element = element
+    this.milestones = milestones
   }
 
   async beforeExit() {
@@ -38,9 +34,9 @@ class Transition {
    * @returns {Promise.<void>} - Resolves when the data-transition attribute is set to 'out'
    */
   async exit(docPromise) {
-    this._view.removeAttribute(attributes.transition)
-    reflow(this._view)
-    this._view.setAttribute(attributes.transition, 'out')
+    this.element.removeAttribute(attributes.transition)
+    reflow(this.element)
+    this.element.setAttribute(attributes.transition, 'out')
   }
 
   async beforeEnter() {
@@ -54,9 +50,9 @@ class Transition {
    */
   async enter(newNode, newDoc) {
     this.updateHtml(newNode)
-    this._view.removeAttribute(attributes.transition)
-    reflow(this._view)
-    this._view.setAttribute(attributes.transition, 'in')
+    this.element.removeAttribute(attributes.transition)
+    reflow(this.element)
+    this.element.setAttribute(attributes.transition, 'in')
   }
 
   /**
@@ -64,17 +60,17 @@ class Transition {
    * @param {String} newNode - The new views node
    */
   updateHtml(newNode) {
-    dispatch(this._view, 'viewhtmlwillupdate')
-    this._view.innerHTML = newNode.innerHTML
-    dispatch(this._view, 'viewhtmldidupdate')
+    dispatch(this.element, 'viewhtmlwillupdate')
+    this.element.innerHTML = newNode.innerHTML
+    dispatch(this.element, 'viewhtmldidupdate')
   }
 
   /**
    * Cleans up after transitions have completed
    */
   done() {
-    this._view.removeAttribute(attributes.transition)
-    reflow(this._view)
+    this.element.removeAttribute(attributes.transition)
+    reflow(this.element)
   }
 }
 

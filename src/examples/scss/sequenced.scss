@@ -1,2 +1,8 @@
 @import '_base.scss';
 @import '_page-transitions.scss';
+@import '_lightbox.scss';
+
+[data-view="sequenced"] {
+  position: fixed;
+  bottom: 1rem;
+}

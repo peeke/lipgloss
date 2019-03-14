@@ -3,7 +3,7 @@ import ViewOrder from './ViewOrder'
 import Model from './Model'
 import Transition from './Transition'
 import attributes from './attributes'
-import { listen, dispatch } from './util'
+import { listen, dispatch, milestone, merge } from './util'
 
 const SUPPORTED = 'pushState' in history
 
@@ -247,14 +247,10 @@ class Controller {
     try {
       dispatch(window, 'pagewillupdate')
 
-      const milestones = this._views.reduce((milestones, view) => ({
-          ...milestones,
-          [view.name]: view.setupMilestones()
-      }), {})
-
-      this._views.forEach(async view => {
-        await view.setModel(model, milestones)
-      })
+      const milestones = this._getFreshMilestones()
+      const done = Promise.all(
+        this._views.map(async view => view.setModel(model, milestones))
+      )
 
       const doc = await model.doc
       this._options.updateDocument(doc)
@@ -263,7 +259,9 @@ class Controller {
         Boolean(document.querySelector(viewSelector(view.name)))
       )
 
+      await done
       dispatch(window, 'pagedidupdate')
+
     } catch (err) {
       console.error(err)
       window.location.href = model.url
@@ -273,6 +271,19 @@ class Controller {
     if (this._queuedModel !== model) {
       this._setModel(this._queuedModel)
     }
+  }
+
+  _getFreshMilestones() {
+    return this._views
+      .map(view => ({
+        [view.name]: {
+          viewWillExit: milestone(),
+          viewDidExit: milestone(),
+          viewWillEnter: milestone(),
+          viewDidEnter: milestone()
+        }
+      }))
+      .reduce(merge)
   }
 
   /**

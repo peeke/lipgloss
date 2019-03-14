@@ -16,6 +16,17 @@ const dispatch = (element, event, data = {}) => {
 
 const reflow = element => element.offsetHeight
 
+const merge = (a, b) => ({ ...a, ...b })
+
+const milestone = () => {
+  let resolve
+  const promise = new Promise(r => {
+    resolve = r;
+  })
+  promise.resolve = resolve
+  return promise
+}
+
 const attributeList = {
   list(element, attribute) {
     const string = element.getAttribute(attribute) || ''
@@ -41,4 +52,4 @@ const attributeList = {
   }
 }
 
-export { listen, dispatch, reflow, attributeList }
+export { listen, dispatch, reflow, merge, milestone, attributeList }

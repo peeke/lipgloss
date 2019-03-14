@@ -12,12 +12,12 @@ export class AnimationTransition extends Transition {
     super.exit()
     await new Promise(resolve => {
       const animationEnd = e => {
-        if (e.target !== this._view) return
-        this._view.removeEventListener('animationend', animationEnd)
-        this._view.removeEventListener('animationend', animationEnd)
+        if (e.target !== this.element) return
+        this.element.removeEventListener('animationend', animationEnd)
+        this.element.removeEventListener('animationend', animationEnd)
         resolve()
       }
-      this._view.addEventListener('animationend', animationEnd)
+      this.element.addEventListener('animationend', animationEnd)
     })
   }
 
@@ -29,11 +29,11 @@ export class AnimationTransition extends Transition {
     super.enter(node)
     await new Promise(resolve => {
       const animationEnd = e => {
-        if (e.target !== this._view) return
-        this._view.removeEventListener('animationend', animationEnd)
+        if (e.target !== this.element) return
+        this.element.removeEventListener('animationend', animationEnd)
         resolve()
       }
-      this._view.addEventListener('animationend', animationEnd)
+      this.element.addEventListener('animationend', animationEnd)
     })
   }
 

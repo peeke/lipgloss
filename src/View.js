@@ -115,20 +115,6 @@ class View {
     return this._model
   }
 
-  setupMilestones() {
-    let viewWillExit, viewDidExit, viewWillEnter, viewDidEnter;
-    const milestones = {
-      viewWillExit: new Promise(resolve => {viewWillExit = resolve}), 
-      viewDidExit: new Promise(resolve => {viewDidExit = resolve}), 
-      viewWillEnter: new Promise(resolve => {viewWillEnter = resolve}), 
-      viewDidEnter: new Promise(resolve => {viewDidEnter = resolve})
-    }
-    this._milestoneResolvers = {
-      viewWillExit, viewDidExit, viewWillEnter, viewDidEnter
-    }
-    return milestones
-  }
-
   /**
    * Set the model associated with this view
    * Has three flows:
@@ -151,7 +137,9 @@ class View {
     const node = doc.querySelector(this._selector)
     const active = node && Boolean(node.innerHTML.trim())
 
-    active ? await this._activate(model, milestones) : await this._deactivate(milestones)
+    active
+      ? await this._activate(model, milestones)
+      : await this._deactivate(milestones)
 
     dispatch(this._element, 'viewdidupdate')
   }
@@ -163,7 +151,9 @@ class View {
    * @private
    */
   async _activate(model, milestones) {
+    const milestone = milestones[this.name]
     const transition = new this._options.transition(this._element, milestones)
+
     this._model = model
 
     this.loading = true
@@ -171,10 +161,17 @@ class View {
 
     if (this.active) {
       await transition.beforeExit()
+
       dispatch(this._element, 'viewwillexit')
-      this._milestoneResolvers.viewWillExit()
+      milestone.viewWillExit.resolve()
+      
       await transition.exit(model.doc)
+
       dispatch(this._element, 'viewdidexit')
+      milestone.viewDidExit.resolve()
+    } else {
+      milestone.viewWillExit.resolve()
+      milestone.viewDidExit.resolve()
     }
 
     const doc = await model.doc
@@ -184,13 +181,17 @@ class View {
     ViewOrder.push(this)
 
     await transition.beforeEnter(node, doc)
-    
+
     this.visible = true
     this.active = true
 
     dispatch(this._element, 'viewwillenter')
+    milestone.viewWillEnter.resolve()
+    
     await transition.enter(node, doc)
+
     dispatch(this._element, 'viewdidenter')
+    milestone.viewDidEnter.resolve()
 
     transition.done()
   }
@@ -202,6 +203,7 @@ class View {
   async _deactivate(milestones) {
     if (!this.active) return
 
+    const milestone = milestones[this.name]
     const transition = new this._options.transition(this._element, milestones)
 
     ViewOrder.delete(this)
@@ -210,11 +212,18 @@ class View {
     this.active = false
 
     dispatch(this._element, 'viewwillexit')
+    milestone.viewWillExit.resolve()
+    
     await transition.exit()
+
     dispatch(this._element, 'viewdidexit')
-    
+    milestone.viewDidExit.resolve()
+
     this.visible = false
-    
+
+    milestone.viewWillEnter.resolve()
+    milestone.viewDidEnter.resolve()
+
     transition.done()
     this._model = null
   }
