@@ -533,12 +533,21 @@
       value: _async$2(function (model, milestones) {
         var _this = this;
 
+        var milestone = milestones[_this.name];
+
         if (model && model.equals(_this._model)) {
+          _this._clearMilestone(milestone);
+
           return;
         }
 
         return _await$2(model.includesView(_this._options.name), function (includedInModel) {
-          if (!includedInModel) return;
+          if (!includedInModel) {
+            _this._clearMilestone(milestone);
+
+            return;
+          }
+
           dispatch(_this._element, 'viewwillupdate');
           return _await$2(model.doc, function (doc) {
             var node = doc.querySelector(_this._selector);
@@ -572,15 +581,15 @@
           if (_this2.active) {
             return _await$2(transition.beforeExit(), function () {
               dispatch(_this2._element, 'viewwillexit');
-              milestone.viewWillExit.resolve();
+              milestone.willExit.resolve();
               return _await$2(transition.exit(model.doc), function () {
                 dispatch(_this2._element, 'viewdidexit');
-                milestone.viewDidExit.resolve();
+                milestone.didExit.resolve();
               });
             });
           } else {
-            milestone.viewWillExit.resolve();
-            milestone.viewDidExit.resolve();
+            milestone.willExit.resolve();
+            milestone.didExit.resolve();
           }
         }, function () {
           return _await$2(model.doc, function (doc) {
@@ -591,10 +600,10 @@
               _this2.visible = true;
               _this2.active = true;
               dispatch(_this2._element, 'viewwillenter');
-              milestone.viewWillEnter.resolve();
+              milestone.willEnter.resolve();
               return _await$2(transition.enter(node, doc), function () {
                 dispatch(_this2._element, 'viewdidenter');
-                milestone.viewDidEnter.resolve();
+                milestone.didEnter.resolve();
                 transition.done();
               });
             });
@@ -611,25 +620,38 @@
       value: _async$2(function (milestones) {
         var _this3 = this;
 
-        if (!_this3.active) return;
         var milestone = milestones[_this3.name];
+
+        if (!_this3.active) {
+          _this3._clearMilestone(milestone);
+
+          return;
+        }
+
         var transition = new _this3._options.transition(_this3._element, milestones);
         ViewOrder$1.delete(_this3);
         return _await$2(transition.beforeExit(), function () {
           _this3.active = false;
           dispatch(_this3._element, 'viewwillexit');
-          milestone.viewWillExit.resolve();
+          milestone.willExit.resolve();
           return _await$2(transition.exit(), function () {
             dispatch(_this3._element, 'viewdidexit');
-            milestone.viewDidExit.resolve();
+            milestone.didExit.resolve();
             _this3.visible = false;
-            milestone.viewWillEnter.resolve();
-            milestone.viewDidEnter.resolve();
+            milestone.willEnter.resolve();
+            milestone.didEnter.resolve();
             transition.done();
             _this3._model = null;
           });
         });
       })
+    }, {
+      key: "_clearMilestone",
+      value: function _clearMilestone(milestone) {
+        Object.values(milestone).forEach(function (promise) {
+          return promise.resolve();
+        });
+      }
     }, {
       key: "active",
 
@@ -651,6 +673,7 @@
 
         this._element.setAttribute(attributes.viewActive, bool);
 
+        reflow(this._element);
         attributeList.toggle(document.body, 'data-views-active', this.name, bool);
       }
     }, {
@@ -661,6 +684,7 @@
 
         this._element.setAttribute(attributes.viewActive, bool);
 
+        reflow(this._element);
         attributeList.toggle(document.body, 'data-views-visible', this.name, bool);
       }
       /**
@@ -825,7 +849,7 @@
       value: function isActive(name) {
         var view = this._getViewByName(name);
 
-        return view && view.active;
+        return Boolean(view && view.active);
       }
       /**
        * Bind global events
@@ -1040,16 +1064,22 @@
 
           var milestones = _this4._getFreshMilestones();
 
-          var done = Promise.all(_this4._views.map(_async$3(function (view) {
-            return view.setModel(model, milestones);
-          })));
+          var updates = _this4._views.map(_async$3(function (view) {
+            var timeout = setTimeout(function () {
+              return console.warn(_this4.name, 'timed out');
+            }, 3000);
+            return _await$3(view.setModel(model, milestones), function () {
+              clearTimeout(timeout);
+            });
+          }));
+
           return _await$3(model.doc, function (doc) {
             _this4._options.updateDocument(doc);
 
             _this4._views = _this4._views.filter(function (view) {
               return Boolean(document.querySelector(viewSelector(view.name)));
             });
-            return _await$3(done, function () {
+            return _await$3(Promise.all(updates), function () {
               dispatch(window, 'pagedidupdate');
             });
           });
@@ -1069,10 +1099,10 @@
       value: function _getFreshMilestones() {
         return this._views.map(function (view) {
           return _defineProperty({}, view.name, {
-            viewWillExit: milestone(),
-            viewDidExit: milestone(),
-            viewWillEnter: milestone(),
-            viewDidEnter: milestone()
+            willExit: milestone(),
+            didExit: milestone(),
+            willEnter: milestone(),
+            didEnter: milestone()
           });
         }).reduce(merge);
       }
@@ -1128,7 +1158,7 @@
   exports.View = View;
   exports.Model = Model;
   exports.Transition = Transition;
-  exports.Attributes = attributes;
+  exports.attributes = attributes;
   exports.default = index;
 
   Object.defineProperty(exports, '__esModule', { value: true });

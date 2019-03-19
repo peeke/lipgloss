@@ -74,7 +74,7 @@ class Controller {
 
   isActive(name) {
     const view = this._getViewByName(name)
-    return view && view.active
+    return Boolean(view && view.active)
   }
 
   /**
@@ -248,9 +248,14 @@ class Controller {
       dispatch(window, 'pagewillupdate')
 
       const milestones = this._getFreshMilestones()
-      const done = Promise.all(
-        this._views.map(async view => view.setModel(model, milestones))
-      )
+      const updates = this._views.map(async view => {
+        const timeout = setTimeout(
+          () => console.warn(this.name, 'timed out'),
+          3000
+        )
+        await view.setModel(model, milestones)
+        clearTimeout(timeout)
+      })
 
       const doc = await model.doc
       this._options.updateDocument(doc)
@@ -259,9 +264,8 @@ class Controller {
         Boolean(document.querySelector(viewSelector(view.name)))
       )
 
-      await done
+      await Promise.all(updates)
       dispatch(window, 'pagedidupdate')
-
     } catch (err) {
       console.error(err)
       window.location.href = model.url
@@ -277,10 +281,10 @@ class Controller {
     return this._views
       .map(view => ({
         [view.name]: {
-          viewWillExit: milestone(),
-          viewDidExit: milestone(),
-          viewWillEnter: milestone(),
-          viewDidEnter: milestone()
+          willExit: milestone(),
+          didExit: milestone(),
+          willEnter: milestone(),
+          didEnter: milestone()
         }
       }))
       .reduce(merge)

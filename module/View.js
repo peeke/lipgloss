@@ -2,7 +2,7 @@ import ViewOrder from './ViewOrder'
 import Transition from './Transition'
 import Model from './Model'
 import attributes from './attributes'
-import { dispatch, attributeList } from './util'
+import { dispatch, attributeList, reflow } from './util'
 
 const errorViewNotFound = name => {
   return new Error(
@@ -65,6 +65,7 @@ class View {
     if (this._active === bool) return
     this._active = bool
     this._element.setAttribute(attributes.viewActive, bool)
+    reflow(this._element)
     attributeList.toggle(document.body, 'data-views-active', this.name, bool)
   }
 
@@ -72,6 +73,7 @@ class View {
     if (this._visible === bool) return
     this._visible = bool
     this._element.setAttribute(attributes.viewActive, bool)
+    reflow(this._element)
     attributeList.toggle(document.body, 'data-views-visible', this.name, bool)
   }
 
@@ -124,12 +126,18 @@ class View {
    * @param {Model} model
    */
   async setModel(model, milestones) {
+    const milestone = milestones[this.name]
+
     if (model && model.equals(this._model)) {
+      this._clearMilestone(milestone)
       return
     }
 
     const includedInModel = await model.includesView(this._options.name)
-    if (!includedInModel) return
+    if (!includedInModel) {
+      this._clearMilestone(milestone)
+      return
+    }
 
     dispatch(this._element, 'viewwillupdate')
 
@@ -163,15 +171,15 @@ class View {
       await transition.beforeExit()
 
       dispatch(this._element, 'viewwillexit')
-      milestone.viewWillExit.resolve()
-      
+      milestone.willExit.resolve()
+
       await transition.exit(model.doc)
 
       dispatch(this._element, 'viewdidexit')
-      milestone.viewDidExit.resolve()
+      milestone.didExit.resolve()
     } else {
-      milestone.viewWillExit.resolve()
-      milestone.viewDidExit.resolve()
+      milestone.willExit.resolve()
+      milestone.didExit.resolve()
     }
 
     const doc = await model.doc
@@ -179,19 +187,18 @@ class View {
     if (!node) throw errorViewNotFound(this.name)
 
     ViewOrder.push(this)
-
     await transition.beforeEnter(node, doc)
 
     this.visible = true
     this.active = true
 
     dispatch(this._element, 'viewwillenter')
-    milestone.viewWillEnter.resolve()
-    
+    milestone.willEnter.resolve()
+
     await transition.enter(node, doc)
 
     dispatch(this._element, 'viewdidenter')
-    milestone.viewDidEnter.resolve()
+    milestone.didEnter.resolve()
 
     transition.done()
   }
@@ -201,9 +208,13 @@ class View {
    * @private
    */
   async _deactivate(milestones) {
-    if (!this.active) return
-
     const milestone = milestones[this.name]
+
+    if (!this.active) {
+      this._clearMilestone(milestone)
+      return
+    }
+
     const transition = new this._options.transition(this._element, milestones)
 
     ViewOrder.delete(this)
@@ -212,20 +223,24 @@ class View {
     this.active = false
 
     dispatch(this._element, 'viewwillexit')
-    milestone.viewWillExit.resolve()
-    
+    milestone.willExit.resolve()
+
     await transition.exit()
 
     dispatch(this._element, 'viewdidexit')
-    milestone.viewDidExit.resolve()
+    milestone.didExit.resolve()
 
     this.visible = false
 
-    milestone.viewWillEnter.resolve()
-    milestone.viewDidEnter.resolve()
+    milestone.willEnter.resolve()
+    milestone.didEnter.resolve()
 
     transition.done()
     this._model = null
+  }
+
+  _clearMilestone(milestone) {
+    Object.values(milestone).forEach(promise => promise.resolve())
   }
 }
 

@@ -7,7 +7,7 @@ export class SequencedTransition extends AnimationTransition {
 
   async beforeExit () {
     if (this.milestones.main) {
-      await this.milestones.main.viewDidExit
+      await this.milestones.main.didExit
     }
   }
   /**
