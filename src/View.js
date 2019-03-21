@@ -139,11 +139,11 @@ class View {
       return
     }
 
-    dispatch(this._element, 'viewwillupdate')
-
     const doc = await model.doc
     const node = doc.querySelector(this._selector)
     const active = node && Boolean(node.innerHTML.trim())
+
+    dispatch(this._element, 'viewwillupdate')
 
     active
       ? await this._activate(model, milestones)

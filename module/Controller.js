@@ -250,9 +250,10 @@ class Controller {
       const milestones = this._getFreshMilestones()
       const updates = this._views.map(async view => {
         const timeout = setTimeout(
-          () => console.warn(this.name, 'timed out'),
+          () => console.warn(view.name, 'timed out'),
           3000
         )
+        await new Promise(resolve => requestAnimationFrame(resolve))
         await view.setModel(model, milestones)
         clearTimeout(timeout)
       })

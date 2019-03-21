@@ -548,10 +548,10 @@
             return;
           }
 
-          dispatch(_this._element, 'viewwillupdate');
           return _await$2(model.doc, function (doc) {
             var node = doc.querySelector(_this._selector);
             var active = node && Boolean(node.innerHTML.trim());
+            dispatch(_this._element, 'viewwillupdate');
             return _await$2(active ? _this._activate(model, milestones) : _this._deactivate(milestones), function (_this$_activate) {
               dispatch(_this._element, 'viewdidupdate');
             });
@@ -1066,10 +1066,14 @@
 
           var updates = _this4._views.map(_async$3(function (view) {
             var timeout = setTimeout(function () {
-              return console.warn(_this4.name, 'timed out');
+              return console.warn(view.name, 'timed out');
             }, 3000);
-            return _await$3(view.setModel(model, milestones), function () {
-              clearTimeout(timeout);
+            return _await$3(new Promise(function (resolve) {
+              return requestAnimationFrame(resolve);
+            }), function () {
+              return _await$3(view.setModel(model, milestones), function () {
+                clearTimeout(timeout);
+              });
             });
           }));
 
