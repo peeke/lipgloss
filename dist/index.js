@@ -138,13 +138,15 @@
     });
   };
 
-  var dispatch = function dispatch(element, event) {
+  var dispatch = function dispatch(element, eventName) {
     var data = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-    element.dispatchEvent(new CustomEvent(event, {
+    var event = new CustomEvent(eventName, {
       detail: data,
       bubbles: true,
       cancelable: true
-    }));
+    });
+    element.dispatchEvent(event);
+    return event;
   };
 
   var reflow = function reflow(element) {
@@ -743,6 +745,18 @@
     return View;
   }();
 
+  function _await$3(value, then, direct) {
+    if (direct) {
+      return then ? then(value) : value;
+    }
+
+    if (!value || !value.then) {
+      value = Promise.resolve(value);
+    }
+
+    return then ? value.then(then) : value;
+  }
+
   function _continue(value, then) {
     return value && value.then ? value.then(then) : then(value);
   }
@@ -761,17 +775,13 @@
     return result;
   }
 
-  function _await$3(value, then, direct) {
-    if (direct) {
-      return then ? then(value) : value;
+  function _awaitIgnored(value, direct) {
+    if (!direct) {
+      return value && value.then ? value.then(_empty) : Promise.resolve();
     }
-
-    if (!value || !value.then) {
-      value = Promise.resolve(value);
-    }
-
-    return then ? value.then(then) : value;
   }
+
+  function _empty() {}
 
   function _async$3(f) {
     return function () {
@@ -925,6 +935,8 @@
         var _this3 = this;
 
         e.preventDefault();
+        var event = dispatch(e.currentTarget, 'viewlinkclick');
+        if (event.defaultPrevented) return;
 
         var url = _this3._options.sanitizeUrl(e.currentTarget.href);
 
@@ -962,6 +974,8 @@
       key: "_onDeactivateViewClick",
       value: function _onDeactivateViewClick(e) {
         e.preventDefault();
+        var event = dispatch(e.currentTarget, 'viewlinkclick');
+        if (event.defaultPrevented) return;
         var name = e.currentTarget.getAttribute(attributes.deactivateView);
         this.deactivateView(name);
       }
@@ -1060,33 +1074,7 @@
         _this4._model = model;
         _this4._updatingPage = true;
         return _continue(_catch(function () {
-          dispatch(window, 'pagewillupdate');
-
-          var milestones = _this4._getFreshMilestones();
-
-          var updates = _this4._views.map(_async$3(function (view) {
-            var timeout = setTimeout(function () {
-              return console.warn(view.name, 'timed out');
-            }, 3000);
-            return _await$3(new Promise(function (resolve) {
-              return requestAnimationFrame(resolve);
-            }), function () {
-              return _await$3(view.setModel(model, milestones), function () {
-                clearTimeout(timeout);
-              });
-            });
-          }));
-
-          return _await$3(model.doc, function (doc) {
-            _this4._options.updateDocument(doc);
-
-            _this4._views = _this4._views.filter(function (view) {
-              return Boolean(document.querySelector(viewSelector(view.name)));
-            });
-            return _await$3(Promise.all(updates), function () {
-              dispatch(window, 'pagedidupdate');
-            });
-          });
+          return _awaitIgnored(_this4.updatePage(model));
         }, function (err) {
           console.error(err);
           window.location.href = model.url;
@@ -1096,6 +1084,42 @@
           if (_this4._queuedModel !== model) {
             _this4._setModel(_this4._queuedModel);
           }
+        });
+      })
+    }, {
+      key: "updatePage",
+      value: _async$3(function (model) {
+        var _this5 = this;
+
+        var event = dispatch(window, 'pagewillupdate');
+        if (event.defaultPrevented) return;
+
+        var milestones = _this5._getFreshMilestones();
+
+        var updates = _this5._views.map(_async$3(function (view) {
+          var timeout = setTimeout(function () {
+            return console.warn(view.name, 'timed out');
+          }, 3000);
+          return _await$3(new Promise(function (resolve) {
+            return requestAnimationFrame(resolve);
+          }), function () {
+            return _await$3(view.setModel(model, milestones), function () {
+              clearTimeout(timeout);
+            });
+          });
+        }));
+
+        return _await$3(model.doc, function (doc) {
+          dispatch(window, 'pagestartsupdate');
+
+          _this5._options.updateDocument(doc);
+
+          _this5._views = _this5._views.filter(function (view) {
+            return Boolean(document.querySelector(viewSelector(view.name)));
+          });
+          return _await$3(Promise.all(updates), function () {
+            dispatch(window, 'pagedidupdate');
+          });
         });
       })
     }, {

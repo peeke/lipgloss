@@ -4,14 +4,14 @@ const listen = (elements, event, fn, options = {}) => {
   )
 }
 
-const dispatch = (element, event, data = {}) => {
-  element.dispatchEvent(
-    new CustomEvent(event, {
-      detail: data,
-      bubbles: true,
-      cancelable: true
-    })
-  )
+const dispatch = (element, eventName, data = {}) => {
+  const event = new CustomEvent(eventName, {
+    detail: data,
+    bubbles: true,
+    cancelable: true
+  })
+  element.dispatchEvent(event)
+  return event
 }
 
 const reflow = element => element.offsetHeight
@@ -21,7 +21,7 @@ const merge = (a, b) => ({ ...a, ...b })
 const milestone = () => {
   let resolve
   const promise = new Promise(r => {
-    resolve = r;
+    resolve = r
   })
   promise.resolve = resolve
   return promise

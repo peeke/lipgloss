@@ -141,6 +141,8 @@ class Controller {
    */
   async _onLinkClick(e) {
     e.preventDefault()
+    const event = dispatch(e.currentTarget, 'viewlinkclick')
+    if (event.defaultPrevented) return
     const url = this._options.sanitizeUrl(e.currentTarget.href)
     this.openUrl(url)
   }
@@ -166,6 +168,8 @@ class Controller {
    */
   _onDeactivateViewClick(e) {
     e.preventDefault()
+    const event = dispatch(e.currentTarget, 'viewlinkclick')
+    if (event.defaultPrevented) return
     const name = e.currentTarget.getAttribute(attributes.deactivateView)
     this.deactivateView(name)
   }
@@ -245,28 +249,7 @@ class Controller {
     this._updatingPage = true
 
     try {
-      dispatch(window, 'pagewillupdate')
-
-      const milestones = this._getFreshMilestones()
-      const updates = this._views.map(async view => {
-        const timeout = setTimeout(
-          () => console.warn(view.name, 'timed out'),
-          3000
-        )
-        await new Promise(resolve => requestAnimationFrame(resolve))
-        await view.setModel(model, milestones)
-        clearTimeout(timeout)
-      })
-
-      const doc = await model.doc
-      this._options.updateDocument(doc)
-
-      this._views = this._views.filter(view =>
-        Boolean(document.querySelector(viewSelector(view.name)))
-      )
-
-      await Promise.all(updates)
-      dispatch(window, 'pagedidupdate')
+      await this.updatePage(model)
     } catch (err) {
       console.error(err)
       window.location.href = model.url
@@ -276,6 +259,33 @@ class Controller {
     if (this._queuedModel !== model) {
       this._setModel(this._queuedModel)
     }
+  }
+
+  async updatePage(model) {
+    const event = dispatch(window, 'pagewillupdate')
+    if (event.defaultPrevented) return
+
+    const milestones = this._getFreshMilestones()
+    const updates = this._views.map(async view => {
+      const timeout = setTimeout(
+        () => console.warn(view.name, 'timed out'),
+        3000
+      )
+      await new Promise(resolve => requestAnimationFrame(resolve))
+      await view.setModel(model, milestones)
+      clearTimeout(timeout)
+    })
+
+    const doc = await model.doc
+    dispatch(window, 'pagestartsupdate')
+    this._options.updateDocument(doc)
+
+    this._views = this._views.filter(view =>
+      Boolean(document.querySelector(viewSelector(view.name)))
+    )
+
+    await Promise.all(updates)
+    dispatch(window, 'pagedidupdate')
   }
 
   _getFreshMilestones() {
