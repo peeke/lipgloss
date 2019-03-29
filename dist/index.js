@@ -934,8 +934,13 @@
       value: _async$3(function (e) {
         var _this3 = this;
 
+        if (e.detail && e.detail.redispatched) return;
         e.preventDefault();
-        var event = dispatch(e.currentTarget, 'viewlinkclick');
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        var event = dispatch(e.currentTarget, 'click', {
+          redispatched: true
+        });
         if (event.defaultPrevented) return;
 
         var url = _this3._options.sanitizeUrl(e.currentTarget.href);
@@ -973,8 +978,13 @@
     }, {
       key: "_onDeactivateViewClick",
       value: function _onDeactivateViewClick(e) {
+        if (e.detail && e.detail.redispatched) return;
         e.preventDefault();
-        var event = dispatch(e.currentTarget, 'viewlinkclick');
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        var event = dispatch(e.currentTarget, 'click', {
+          redispatched: true
+        });
         if (event.defaultPrevented) return;
         var name = e.currentTarget.getAttribute(attributes.deactivateView);
         this.deactivateView(name);

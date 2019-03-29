@@ -140,9 +140,14 @@ class Controller {
    * @private
    */
   async _onLinkClick(e) {
+    if (e.detail && e.detail.redispatched) return
     e.preventDefault()
-    const event = dispatch(e.currentTarget, 'viewlinkclick')
+    e.stopPropagation()
+    e.stopImmediatePropagation()
+
+    const event = dispatch(e.currentTarget, 'click', { redispatched: true })
     if (event.defaultPrevented) return
+
     const url = this._options.sanitizeUrl(e.currentTarget.href)
     this.openUrl(url)
   }
@@ -167,9 +172,14 @@ class Controller {
    * @private
    */
   _onDeactivateViewClick(e) {
+    if (e.detail && e.detail.redispatched) return
     e.preventDefault()
-    const event = dispatch(e.currentTarget, 'viewlinkclick')
+    e.stopPropagation()
+    e.stopImmediatePropagation()
+
+    const event = dispatch(e.currentTarget, 'click', { redispatched: true })
     if (event.defaultPrevented) return
+    
     const name = e.currentTarget.getAttribute(attributes.deactivateView)
     this.deactivateView(name)
   }
