@@ -1,5 +1,4 @@
 import attributes from './attributes'
-import { dispatch } from './util'
 
 let modelId = 0
 const modelCache = {}

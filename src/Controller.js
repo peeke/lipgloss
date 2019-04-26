@@ -105,17 +105,19 @@ class Controller {
         this._views.push(view)
       })
 
-    listen(
-      context.querySelectorAll(`[href][${attributes.viewLink}]`),
-      'click',
-      this._onLinkClick
-    )
+    setTimeout(() => {
+      listen(
+        context.querySelectorAll(`[href][${attributes.viewLink}]`),
+        'click',
+        this._onLinkClick
+      )
 
-    listen(
-      context.querySelectorAll(`[${attributes.deactivateView}]`),
-      'click',
-      this._onDeactivateViewClick
-    )
+      listen(
+        context.querySelectorAll(`[${attributes.deactivateView}]`),
+        'click',
+        this._onDeactivateViewClick
+      )
+    })
   }
 
   /**
@@ -140,13 +142,8 @@ class Controller {
    * @private
    */
   async _onLinkClick(e) {
-    if (e.detail && e.detail.redispatched) return
+    if (e.defaultPrevented) return
     e.preventDefault()
-    e.stopPropagation()
-    e.stopImmediatePropagation()
-
-    const event = dispatch(e.currentTarget, 'click', { redispatched: true })
-    if (event.defaultPrevented) return
 
     const url = this._options.sanitizeUrl(e.currentTarget.href)
     this.openUrl(url)

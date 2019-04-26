@@ -900,8 +900,10 @@
 
           _this2._views.push(view);
         });
-        listen(context.querySelectorAll("[href][".concat(attributes.viewLink, "]")), 'click', this._onLinkClick);
-        listen(context.querySelectorAll("[".concat(attributes.deactivateView, "]")), 'click', this._onDeactivateViewClick);
+        setTimeout(function () {
+          listen(context.querySelectorAll("[href][".concat(attributes.viewLink, "]")), 'click', _this2._onLinkClick);
+          listen(context.querySelectorAll("[".concat(attributes.deactivateView, "]")), 'click', _this2._onDeactivateViewClick);
+        });
       }
       /**
        * Creates a View component based on a given element and an initial model
@@ -934,14 +936,8 @@
       value: _async$3(function (e) {
         var _this3 = this;
 
-        if (e.detail && e.detail.redispatched) return;
+        if (e.defaultPrevented) return;
         e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        var event = dispatch(e.currentTarget, 'click', {
-          redispatched: true
-        });
-        if (event.defaultPrevented) return;
 
         var url = _this3._options.sanitizeUrl(e.currentTarget.href);
 
