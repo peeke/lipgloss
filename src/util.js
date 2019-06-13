@@ -1,7 +1,7 @@
 const listen = (elements, event, fn, options = {}) => {
-  Array.from(elements).forEach(element =>
+  elements.forEach(element => {
     element.addEventListener(event, fn, options)
-  )
+  })
 }
 
 const dispatch = (element, eventName, data = {}) => {

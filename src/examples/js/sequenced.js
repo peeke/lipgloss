@@ -17,6 +17,7 @@ window.addEventListener('viewdidupdate', e => {
     element.addEventListener('click', e => {
       if (Math.random() < .5) {
         e.preventDefault()
+        e.stopPropagation()
         console.log('prevented')
       }
     })

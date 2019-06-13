@@ -133,8 +133,8 @@
 
   var listen = function listen(elements, event, fn) {
     var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
-    Array.from(elements).forEach(function (element) {
-      return element.addEventListener(event, fn, options);
+    elements.forEach(function (element) {
+      element.addEventListener(event, fn, options);
     });
   };
 
@@ -359,24 +359,27 @@
      * Initialize a new Model
      * @param {object} options - The configuration for the Model
      * @param {string} options.url - The url to request
-     * @param {object} fetchOptions = The options used to fetch the url
+     * @param {object} options.request = The options used to fetch the url
      */
     function Model(options) {
-      var fetchOptions = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
       _classCallCheck(this, Model);
 
-      this._request = new Request(options.url, fetchOptions);
+      options.request = options.request || {};
+      this._request = new Request(options.url, options.request);
       this._doc = null;
-      this._id = typeof options.id === 'number' ? options.id : newId();
+      this._id = typeof options.id === 'undefined' ? newId() : options.id;
       modelCache[this._id] = this;
-      this._response = fetch(this._request).then(function (response) {
+      this._doc = fetch(this._request).then(function (response) {
         return response.ok ? response : Promise.reject();
       }).then(function (response) {
         // { redirect: 'error' } fallback for IE and some older browsers
-        if (fetchOptions.redirect !== 'error') return response;
+        if (options.request.redirect !== 'error') return response;
         if (options.url !== response.url) return Promise.reject();
         return response;
+      }).then(function (response) {
+        return response.text();
+      }).then(function (html) {
+        return new DOMParser().parseFromString(html, 'text/html');
       });
     }
 
@@ -398,8 +401,7 @@
     }, {
       key: "equals",
       value: function equals(model) {
-        if (!model) return false;
-        return this.id === model.id;
+        return model && model.id === this.id;
       }
     }, {
       key: "id",
@@ -424,14 +426,6 @@
     }, {
       key: "doc",
       get: function get() {
-        if (!this._doc) {
-          this._doc = this._response.then(function (response) {
-            return response.text();
-          }).then(function (html) {
-            return new DOMParser().parseFromString(html, 'text/html');
-          });
-        }
-
         return this._doc;
       }
     }], [{
@@ -745,18 +739,6 @@
     return View;
   }();
 
-  function _await$3(value, then, direct) {
-    if (direct) {
-      return then ? then(value) : value;
-    }
-
-    if (!value || !value.then) {
-      value = Promise.resolve(value);
-    }
-
-    return then ? value.then(then) : value;
-  }
-
   function _continue(value, then) {
     return value && value.then ? value.then(then) : then(value);
   }
@@ -795,6 +777,18 @@
         return Promise.reject(e);
       }
     };
+  }
+
+  function _await$3(value, then, direct) {
+    if (direct) {
+      return then ? then(value) : value;
+    }
+
+    if (!value || !value.then) {
+      value = Promise.resolve(value);
+    }
+
+    return then ? value.then(then) : value;
   }
   var SUPPORTED = 'pushState' in history;
 
@@ -835,8 +829,9 @@
         var url = this._options.sanitizeUrl(window.location.href);
 
         this._model = new Model({
-          url: url
-        }, this._options.fetch);
+          url: url,
+          request: this._options.fetch
+        });
         this._queuedModel = this._model;
         this._updatingPage = false;
         this._onLinkClick = this._onLinkClick.bind(this);
@@ -852,18 +847,6 @@
       /**
        * Default init options
        * @type {object}
-       */
-
-    }, {
-      key: "isActive",
-      value: function isActive(name) {
-        var view = this._getViewByName(name);
-
-        return Boolean(view && view.active);
-      }
-      /**
-       * Bind global events
-       * @private
        */
 
     }, {
@@ -899,91 +882,33 @@
           _this2._viewsMap.set(element, view);
 
           _this2._views.push(view);
-        });
+        }); // Listening is delayed, to give other event listeners the chance to prevent the behavior
+
         setTimeout(function () {
           listen(context.querySelectorAll("[href][".concat(attributes.viewLink, "]")), 'click', _this2._onLinkClick);
           listen(context.querySelectorAll("[".concat(attributes.deactivateView, "]")), 'click', _this2._onDeactivateViewClick);
-        });
+        }, 1);
       }
-      /**
-       * Creates a View component based on a given element and an initial model
-       * @param {Element} element - The element to create a view for
-       * @param {Model} model - The initial model for the view
-       * @returns {View} - The created view
-       * @private
-       */
-
-    }, {
-      key: "_createView",
-      value: function _createView(element, model) {
-        var name = element.getAttribute(attributes.view) || element.getAttribute(attributes.slot);
-        var transition = this._options.transitions[name] || Transition;
-        return new View(element, {
-          name: name,
-          transition: transition,
-          model: model
-        });
-      }
-      /**
-       * Handles a click on an element with a [data-view-link] attribute. Loads the document found at [href].
-       * This function calls the _setModel function and adds a history entry.
-       * @param {Event} e - Click event
-       * @private
-       */
-
-    }, {
-      key: "_onLinkClick",
-      value: _async$3(function (e) {
-        var _this3 = this;
-
-        if (e.defaultPrevented) return;
-        e.preventDefault();
-
-        var url = _this3._options.sanitizeUrl(e.currentTarget.href);
-
-        _this3.openUrl(url);
-      })
       /**
        *
        * @param {String} url - The url to open.
-       * @param {Object} fetchOptions - The options to pass to fetch().
+       * @param {Object} options - The options to pass to fetch().
        */
 
     }, {
       key: "openUrl",
       value: function openUrl(url) {
-        var fetchOptions = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this._options.fetch;
+        var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this._options.fetch;
         var model = new Model({
-          url: url
-        }, fetchOptions);
+          url: url,
+          request: options
+        });
 
         var samePage = this._model && this._model.equals(model);
 
         this._queueModel(model);
 
         this._addHistoryEntry(model, samePage);
-      }
-      /**
-       * Handles a click on an element with a [data-deactivate-view="viewname"] attribute.
-       * Navigates to the current url of View next up in the ViewOrder. This is particularly useful when you want to close an overlay or lightbox.
-       * This function calls the _setModel function and adds a history entry.
-       * @param {Event} e - Click event
-       * @private
-       */
-
-    }, {
-      key: "_onDeactivateViewClick",
-      value: function _onDeactivateViewClick(e) {
-        if (e.detail && e.detail.redispatched) return;
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        var event = dispatch(e.currentTarget, 'click', {
-          redispatched: true
-        });
-        if (event.defaultPrevented) return;
-        var name = e.currentTarget.getAttribute(attributes.deactivateView);
-        this.deactivateView(name);
       }
       /**
        * Deactivate a view by name
@@ -1006,6 +931,109 @@
         this._queueModel(newView.model);
 
         this._addHistoryEntry(newView.model);
+      }
+      /**
+       * Update the page by passing in a Lipgloss model
+       * @param {Model} model - A Lipgloss model
+       */
+
+    }, {
+      key: "updatePage",
+      value: _async$3(function (model) {
+        var _this3 = this;
+
+        var event = dispatch(window, 'pagewillupdate');
+        if (event.defaultPrevented) return;
+
+        var milestones = _this3._getFreshMilestones();
+
+        var updates = _this3._views.map(_async$3(function (view) {
+          var timeout = setTimeout(function () {
+            return console.warn(view.name, 'timed out');
+          }, _this3._options.transitionTimeout);
+          return _await$3(view.setModel(model, milestones), function () {
+            clearTimeout(timeout);
+          });
+        }));
+
+        return _await$3(model.doc, function (doc) {
+          dispatch(window, 'pagestartsupdate');
+
+          _this3._options.updateDocument(doc);
+
+          _this3._views = _this3._views.filter(function (view) {
+            return Boolean(document.querySelector(viewSelector(view.name)));
+          });
+          return _await$3(Promise.all(updates), function () {
+            dispatch(window, 'pagedidupdate');
+          });
+        });
+      })
+      /**
+       * Returns whether the view with the given name is active or not
+       * @param {string} name - View name
+       */
+
+    }, {
+      key: "isActive",
+      value: function isActive(name) {
+        var view = this._getViewByName(name);
+
+        return Boolean(view && view.active);
+      }
+      /**
+       * Creates a View component based on a given element and an initial model
+       * @param {Element} element - The element to create a view for
+       * @param {Model} model - The initial model for the view
+       * @returns {View} - The created view
+       * @private
+       */
+
+    }, {
+      key: "_createView",
+      value: function _createView(element, model) {
+        var name = element.getAttribute(attributes.view) || element.getAttribute(attributes.slot);
+        var transition = this._options.transitions[name] || Transition;
+        return new View(element, {
+          name: name,
+          transition: transition,
+          model: model
+        });
+      }
+      /**
+       * Handles a click on an element with a [data-view-link] attribute. Loads the document found at [href].
+       * This function calls the _updateModel function and adds a history entry.
+       * @param {Event} e - Click event
+       * @private
+       */
+
+    }, {
+      key: "_onLinkClick",
+      value: _async$3(function (e) {
+        var _this4 = this;
+
+        if (e.defaultPrevented) return;
+        e.preventDefault();
+
+        var url = _this4._options.sanitizeUrl(e.currentTarget.href);
+
+        _this4.openUrl(url);
+      })
+      /**
+       * Handles a click on an element with a [data-deactivate-view="viewname"] attribute.
+       * Navigates to the current url of View next up in the ViewOrder. This is particularly useful when you want to close an overlay or lightbox.
+       * This function calls the _updateModel function and adds a history entry.
+       * @param {Event} e - Click event
+       * @private
+       */
+
+    }, {
+      key: "_onDeactivateViewClick",
+      value: function _onDeactivateViewClick(e) {
+        if (e.defaultPrevented) return;
+        e.preventDefault();
+        var name = e.currentTarget.getAttribute(attributes.deactivateView);
+        this.deactivateView(name);
       }
       /**
        * Retreive a Model from a View
@@ -1034,16 +1062,12 @@
 
         try {
           // We use an existing model (if it exists) so we don't have to refetch the associated request
-          var _model = Model.getById(e.state.modelId); // Recreate the model if it's not in the cache
-
-
-          if (!_model) {
-            var options = {
-              url: e.state.url,
-              id: e.state.modelId
-            };
-            _model = new Model(options, this._options.fetch);
-          }
+          // Recreate the model if it's not in the cache
+          var _model = Model.getById(e.state.modelId) || new Model({
+            url: e.state.url,
+            id: e.state.modelId,
+            request: this._options.fetch
+          });
 
           this._queueModel(_model);
         } catch (err) {
@@ -1063,7 +1087,7 @@
         this._queuedModel = model;
         if (this._updatingPage) return;
 
-        this._setModel(model);
+        this._updateModel(model);
       }
       /**
        * Updates given views in a page with a new model
@@ -1073,59 +1097,23 @@
        */
 
     }, {
-      key: "_setModel",
+      key: "_updateModel",
       value: _async$3(function (model) {
-        var _this4 = this;
+        var _this5 = this;
 
-        _this4._model = model;
-        _this4._updatingPage = true;
+        _this5._model = model;
+        _this5._updatingPage = true;
         return _continue(_catch(function () {
-          return _awaitIgnored(_this4.updatePage(model));
+          return _awaitIgnored(_this5.updatePage(model));
         }, function (err) {
           console.error(err);
           window.location.href = model.url;
         }), function () {
-          _this4._updatingPage = false;
+          _this5._updatingPage = false;
 
-          if (_this4._queuedModel !== model) {
-            _this4._setModel(_this4._queuedModel);
+          if (_this5._queuedModel !== model) {
+            _this5._updateModel(_this5._queuedModel);
           }
-        });
-      })
-    }, {
-      key: "updatePage",
-      value: _async$3(function (model) {
-        var _this5 = this;
-
-        var event = dispatch(window, 'pagewillupdate');
-        if (event.defaultPrevented) return;
-
-        var milestones = _this5._getFreshMilestones();
-
-        var updates = _this5._views.map(_async$3(function (view) {
-          var timeout = setTimeout(function () {
-            return console.warn(view.name, 'timed out');
-          }, 3000);
-          return _await$3(new Promise(function (resolve) {
-            return requestAnimationFrame(resolve);
-          }), function () {
-            return _await$3(view.setModel(model, milestones), function () {
-              clearTimeout(timeout);
-            });
-          });
-        }));
-
-        return _await$3(model.doc, function (doc) {
-          dispatch(window, 'pagestartsupdate');
-
-          _this5._options.updateDocument(doc);
-
-          _this5._views = _this5._views.filter(function (view) {
-            return Boolean(document.querySelector(viewSelector(view.name)));
-          });
-          return _await$3(Promise.all(updates), function () {
-            dispatch(window, 'pagedidupdate');
-          });
         });
       })
     }, {
@@ -1160,35 +1148,39 @@
         history[method](state, document.title, model.url);
         dispatch(window, 'statechange', state);
       }
-    }], [{
-      key: "options",
-      get: function get() {
-        return {
-          transitions: {},
-          sanitizeUrl: function sanitizeUrl(url) {
-            return url;
-          },
-          updateDocument: function updateDocument(doc) {
-            document.title = doc.title;
-          },
-          attributes: {},
-          fetch: {
-            credentials: 'same-origin',
-            cache: 'default',
-            redirect: 'error',
-            headers: {
-              'X-Requested-With': 'XmlHttpRequest'
-            }
-          }
-        };
-      }
     }]);
 
     return Controller;
   }();
 
+  _defineProperty(Controller, "options", {
+    transitions: {},
+    transitionTimeout: 3000,
+    sanitizeUrl: function sanitizeUrl(url) {
+      return url;
+    },
+    updateDocument: function updateDocument(doc) {
+      document.title = doc.title;
+    },
+    attributes: {},
+    fetch: {
+      credentials: 'same-origin',
+      cache: 'default',
+      redirect: 'error',
+      headers: {
+        'X-Requested-With': 'XmlHttpRequest'
+      }
+    }
+    /**
+     * Bind global events
+     * @private
+     */
+
+  });
+
   var index = new Controller();
 
+  exports.Controller = Controller;
   exports.View = View;
   exports.Model = Model;
   exports.Transition = Transition;

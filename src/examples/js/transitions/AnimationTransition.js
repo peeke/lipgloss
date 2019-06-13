@@ -1,5 +1,10 @@
 import { Transition } from '../../../../src/index'
 
+const animationEnd = element => new Promise(resolve => {
+  const onAnimationEnd = e => e.target === element && resolve()
+  element.addEventListener('animationend', onAnimationEnd, { once: true })
+})
+
 /**
  * Extended Transition
  */
@@ -10,15 +15,7 @@ export class AnimationTransition extends Transition {
    */
   async exit () {
     super.exit()
-    await new Promise(resolve => {
-      const animationEnd = e => {
-        if (e.target !== this.element) return
-        this.element.removeEventListener('animationend', animationEnd)
-        this.element.removeEventListener('animationend', animationEnd)
-        resolve()
-      }
-      this.element.addEventListener('animationend', animationEnd)
-    })
+    await animationEnd(this.element)
   }
 
   /**
@@ -27,14 +24,7 @@ export class AnimationTransition extends Transition {
    */
   async enter (node) {
     super.enter(node)
-    await new Promise(resolve => {
-      const animationEnd = e => {
-        if (e.target !== this.element) return
-        this.element.removeEventListener('animationend', animationEnd)
-        resolve()
-      }
-      this.element.addEventListener('animationend', animationEnd)
-    })
+    await animationEnd(this.element)
   }
 
 }

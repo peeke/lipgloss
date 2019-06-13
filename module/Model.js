@@ -13,23 +13,26 @@ class Model {
    * Initialize a new Model
    * @param {object} options - The configuration for the Model
    * @param {string} options.url - The url to request
-   * @param {object} fetchOptions = The options used to fetch the url
+   * @param {object} options.request = The options used to fetch the url
    */
-  constructor(options, fetchOptions = {}) {
-    this._request = new Request(options.url, fetchOptions)
+  constructor(options) {
+    options.request = options.request || {}
+    this._request = new Request(options.url, options.request)
     this._doc = null
-    this._id = typeof options.id === 'number' ? options.id : newId()
+    this._id = typeof options.id === 'undefined' ? newId() : options.id
 
     modelCache[this._id] = this
 
-    this._response = fetch(this._request)
+    this._doc = fetch(this._request)
       .then(response => (response.ok ? response : Promise.reject()))
       .then(response => {
         // { redirect: 'error' } fallback for IE and some older browsers
-        if (fetchOptions.redirect !== 'error') return response
+        if (options.request.redirect !== 'error') return response
         if (options.url !== response.url) return Promise.reject()
         return response
       })
+      .then(response => response.text())
+      .then(html => new DOMParser().parseFromString(html, 'text/html'))
   }
 
   static getById(id) {
@@ -53,11 +56,6 @@ class Model {
    * @returns {Promise.<Element>} - A promise containing the new document
    */
   get doc() {
-    if (!this._doc) {
-      this._doc = this._response
-        .then(response => response.text())
-        .then(html => new DOMParser().parseFromString(html, 'text/html'))
-    }
     return this._doc
   }
 
@@ -72,8 +70,7 @@ class Model {
   }
 
   equals(model) {
-    if (!model) return false
-    return this.id === model.id
+    return model && model.id === this.id
   }
 }
 

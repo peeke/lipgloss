@@ -34,7 +34,7 @@ class Controller {
     Object.assign(attributes, this._options.attributes)
 
     const url = this._options.sanitizeUrl(window.location.href)
-    this._model = new Model({ url }, this._options.fetch)
+    this._model = new Model({ url, request: this._options.fetch })
 
     this._queuedModel = this._model
     this._updatingPage = false
@@ -44,6 +44,7 @@ class Controller {
 
     this._addHistoryEntry(this._model, true)
     this._bindEvents()
+
     this.initializeContext(document)
 
     dispatch(window, 'lipglossready')
@@ -53,28 +54,22 @@ class Controller {
    * Default init options
    * @type {object}
    */
-  static get options() {
-    return {
-      transitions: {},
-      sanitizeUrl: url => url,
-      updateDocument: doc => {
-        document.title = doc.title
-      },
-      attributes: {},
-      fetch: {
-        credentials: 'same-origin',
-        cache: 'default',
-        redirect: 'error',
-        headers: {
-          'X-Requested-With': 'XmlHttpRequest'
-        }
+  static options = {
+    transitions: {},
+    transitionTimeout: 3000,
+    sanitizeUrl: url => url,
+    updateDocument: doc => {
+      document.title = doc.title
+    },
+    attributes: {},
+    fetch: {
+      credentials: 'same-origin',
+      cache: 'default',
+      redirect: 'error',
+      headers: {
+        'X-Requested-With': 'XmlHttpRequest'
       }
     }
-  }
-
-  isActive(name) {
-    const view = this._getViewByName(name)
-    return Boolean(view && view.active)
   }
 
   /**
@@ -105,6 +100,7 @@ class Controller {
         this._views.push(view)
       })
 
+    // Listening is delayed, to give other event listeners the chance to prevent the behavior
     setTimeout(() => {
       listen(
         context.querySelectorAll(`[href][${attributes.viewLink}]`),
@@ -117,7 +113,77 @@ class Controller {
         'click',
         this._onDeactivateViewClick
       )
+    }, 1)
+  }
+
+  /**
+   *
+   * @param {String} url - The url to open.
+   * @param {Object} options - The options to pass to fetch().
+   */
+  openUrl(url, options = this._options.fetch) {
+    const model = new Model({ url, request: options })
+    const samePage = this._model && this._model.equals(model)
+    this._queueModel(model)
+    this._addHistoryEntry(model, samePage)
+  }
+
+  /**
+   * Deactivate a view by name
+   * @param {string} name - Name of the view to activate
+   */
+  deactivateView(name) {
+    const view = this._getViewByName(name)
+    const newView = ViewOrder.order.find(v => !v.model.equals(view.model))
+
+    if (!newView) {
+      throw new Error(
+        `Unable to deactivate view ${name}, because there's no view to fall back to.`
+      )
+    }
+
+    this._queueModel(newView.model)
+    this._addHistoryEntry(newView.model)
+  }
+
+  /**
+   * Update the page by passing in a Lipgloss model
+   * @param {Model} model - A Lipgloss model
+   */
+  async updatePage(model) {
+    const event = dispatch(window, 'pagewillupdate')
+    if (event.defaultPrevented) return
+
+    const milestones = this._getFreshMilestones()
+    const updates = this._views.map(async view => {
+      const timeout = setTimeout(
+        () => console.warn(view.name, 'timed out'),
+        this._options.transitionTimeout
+      )
+      
+      await view.setModel(model, milestones)
+      clearTimeout(timeout)
     })
+
+    const doc = await model.doc
+    dispatch(window, 'pagestartsupdate')
+    this._options.updateDocument(doc)
+
+    this._views = this._views.filter(view =>
+      Boolean(document.querySelector(viewSelector(view.name)))
+    )
+
+    await Promise.all(updates)
+    dispatch(window, 'pagedidupdate')
+  }
+
+  /**
+   * Returns whether the view with the given name is active or not
+   * @param {string} name - View name
+   */
+  isActive(name) {
+    const view = this._getViewByName(name)
+    return Boolean(view && view.active)
   }
 
   /**
@@ -137,7 +203,7 @@ class Controller {
 
   /**
    * Handles a click on an element with a [data-view-link] attribute. Loads the document found at [href].
-   * This function calls the _setModel function and adds a history entry.
+   * This function calls the _updateModel function and adds a history entry.
    * @param {Event} e - Click event
    * @private
    */
@@ -150,53 +216,18 @@ class Controller {
   }
 
   /**
-   *
-   * @param {String} url - The url to open.
-   * @param {Object} fetchOptions - The options to pass to fetch().
-   */
-  openUrl(url, fetchOptions = this._options.fetch) {
-    const model = new Model({ url }, fetchOptions)
-    const samePage = this._model && this._model.equals(model)
-    this._queueModel(model)
-    this._addHistoryEntry(model, samePage)
-  }
-
-  /**
    * Handles a click on an element with a [data-deactivate-view="viewname"] attribute.
    * Navigates to the current url of View next up in the ViewOrder. This is particularly useful when you want to close an overlay or lightbox.
-   * This function calls the _setModel function and adds a history entry.
+   * This function calls the _updateModel function and adds a history entry.
    * @param {Event} e - Click event
    * @private
    */
   _onDeactivateViewClick(e) {
-    if (e.detail && e.detail.redispatched) return
+    if (e.defaultPrevented) return
     e.preventDefault()
-    e.stopPropagation()
-    e.stopImmediatePropagation()
 
-    const event = dispatch(e.currentTarget, 'click', { redispatched: true })
-    if (event.defaultPrevented) return
-    
     const name = e.currentTarget.getAttribute(attributes.deactivateView)
     this.deactivateView(name)
-  }
-
-  /**
-   * Deactivate a view by name
-   * @param {string} name - Name of the view to activate
-   */
-  deactivateView(name) {
-    const view = this._getViewByName(name)
-    const newView = ViewOrder.order.find(v => !v.model.equals(view.model))
-
-    if (!newView) {
-      throw new Error(
-        `Unable to deactivate view ${name}, because there's no view to fall back to.`
-      )
-    }
-
-    this._queueModel(newView.model)
-    this._addHistoryEntry(newView.model)
   }
 
   /**
@@ -219,13 +250,12 @@ class Controller {
 
     try {
       // We use an existing model (if it exists) so we don't have to refetch the associated request
-      let model = Model.getById(e.state.modelId)
-
       // Recreate the model if it's not in the cache
-      if (!model) {
-        const options = { url: e.state.url, id: e.state.modelId }
-        model = new Model(options, this._options.fetch)
-      }
+      const model = Model.getById(e.state.modelId) || new Model({
+        url: e.state.url,
+        id: e.state.modelId,
+        request: this._options.fetch
+      })
 
       this._queueModel(model)
     } catch (err) {
@@ -242,7 +272,7 @@ class Controller {
   _queueModel(model) {
     this._queuedModel = model
     if (this._updatingPage) return
-    this._setModel(model)
+    this._updateModel(model)
   }
 
   /**
@@ -251,7 +281,7 @@ class Controller {
    * @returns {Promise.<void>} - Resolves when updating the page is done
    * @private
    */
-  async _setModel(model) {
+  async _updateModel(model) {
     this._model = model
     this._updatingPage = true
 
@@ -263,36 +293,10 @@ class Controller {
     }
 
     this._updatingPage = false
+
     if (this._queuedModel !== model) {
-      this._setModel(this._queuedModel)
+      this._updateModel(this._queuedModel)
     }
-  }
-
-  async updatePage(model) {
-    const event = dispatch(window, 'pagewillupdate')
-    if (event.defaultPrevented) return
-
-    const milestones = this._getFreshMilestones()
-    const updates = this._views.map(async view => {
-      const timeout = setTimeout(
-        () => console.warn(view.name, 'timed out'),
-        3000
-      )
-      await new Promise(resolve => requestAnimationFrame(resolve))
-      await view.setModel(model, milestones)
-      clearTimeout(timeout)
-    })
-
-    const doc = await model.doc
-    dispatch(window, 'pagestartsupdate')
-    this._options.updateDocument(doc)
-
-    this._views = this._views.filter(view =>
-      Boolean(document.querySelector(viewSelector(view.name)))
-    )
-
-    await Promise.all(updates)
-    dispatch(window, 'pagedidupdate')
   }
 
   _getFreshMilestones() {
